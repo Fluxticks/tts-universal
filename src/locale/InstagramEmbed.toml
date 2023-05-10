@@ -1,0 +1,17 @@
+instagram_group_name="insta"
+instagram_admin_group_name="insta-ad"
+
+warn_invalid_url="The given URL is not a valid Instagram URL ⚠️"
+
+instagram_embed_name="embed"
+instagram_embed_description="Send a tiktok URL with a proper embed"
+instagram_embed_url_describe="The url of the tiktok post"
+instagram_embed_rename="url"
+
+instagram_enable_messages_name="enable-auto-convert"
+instagram_enable_messages_description="Enable automatically detecting URLs in user messages."
+instagram_enable_messages_success="Message URL auto conversion enabled ✅"
+
+instagram_disable_messages_name="disable-auto-convert"
+instagram_disable_messages_description="Disable automatically detecting URLs in user messages."
+instagram_disable_messages_success="Message URL auto conversion disabled ✅"

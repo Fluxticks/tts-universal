@@ -1,0 +1,17 @@
+reddit_group_name="reddit"
+reddit_admin_group_name="reddit-ad"
+
+warn_invalid_url="The given URL is not a valid Reddit post URL ⚠️"
+
+reddit_embed_name="embed"
+reddit_embed_description="Send a reddit URL with a proper embed"
+reddit_embed_url_describe="The url of the reddit post"
+reddit_embed_rename="url"
+
+reddit_enable_messages_name="enable-auto-convert"
+reddit_enable_messages_description="Enable automatically detecting URLs in user messages."
+reddit_enable_messages_success="Message URL auto conversion enabled ✅"
+
+reddit_disable_messages_name="disable-auto-convert"
+reddit_disable_messages_description="Disable automatically detecting URLs in user messages."
+reddit_disable_messages_success="Message URL auto conversion disabled ✅"

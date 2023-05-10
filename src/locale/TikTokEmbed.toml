@@ -1,0 +1,17 @@
+tiktok_group_name="tiktok"
+tiktok_admin_group_name="tiktok-ad"
+
+warn_invalid_url="The given URL is not a valid TikTok URL ⚠️"
+
+tiktok_embed_name="embed"
+tiktok_embed_description="Send a tiktok URL with a proper embed"
+tiktok_embed_url_describe="The url of the tiktok post"
+tiktok_embed_rename="url"
+
+tiktok_enable_messages_name="enable-auto-convert"
+tiktok_enable_messages_description="Enable automatically detecting URLs in user messages."
+tiktok_enable_messages_success="Message URL auto conversion enabled ✅"
+
+tiktok_disable_messages_name="disable-auto-convert"
+tiktok_disable_messages_description="Disable automatically detecting URLs in user messages."
+tiktok_disable_messages_success="Message URL auto conversion disabled ✅"
