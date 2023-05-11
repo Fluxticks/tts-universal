@@ -157,11 +157,11 @@ class RedditEmbed(GroupCog, name=COG_STRINGS["reddit_group_name"]):
 
     @GroupCog.listener()
     async def on_message(self, message: Message):
-        db_item = DBSession.get(RedditMessagesEnabled, guild_id=message.guild.id)
-        if not db_item or not db_item.is_enabled:
+        if message.author.bot:
             return
 
-        if message.author.bot:
+        db_item = DBSession.get(RedditMessagesEnabled, guild_id=message.guild.id)
+        if not db_item or not db_item.is_enabled:
             return
 
         found_urls = re.finditer(REGEX_STR, message.content, re.MULTILINE)

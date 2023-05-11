@@ -109,11 +109,11 @@ class TikTokEmbed(GroupCog, name=COG_STRINGS["tiktok_group_name"]):
 
     @GroupCog.listener()
     async def on_message(self, message: Message):
-        db_item = DBSession.get(TikTokMessagesEnabled, guild_id=message.guild.id)
-        if not db_item or not db_item.is_enabled:
+        if message.author.bot:
             return
 
-        if message.author.bot:
+        db_item = DBSession.get(TikTokMessagesEnabled, guild_id=message.guild.id)
+        if not db_item or not db_item.is_enabled:
             return
 
         found_urls = re.finditer(REGEX_STR, message.content, re.MULTILINE)
