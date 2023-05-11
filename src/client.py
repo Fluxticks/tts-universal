@@ -12,6 +12,11 @@ from common.io import load_quotes
 import glob
 
 __all__ = ["EsportsBot"]
+STATUS_HOURS = os.getenv("STATUS_ROTATE_HOURS", 3)
+try:
+    STATUS_HOURS = int(STATUS_HOURS)
+except ValueError:
+    STATUS_HOURS = 3
 
 
 class __EsportsBot(Bot):
@@ -83,7 +88,7 @@ class __EsportsBot(Bot):
         new_quote = f"\"{choice_quote}\" - {choice_author}, {timestamp_str}"
         return new_quote
 
-    @tasks.loop(hours=3)
+    @tasks.loop(hours=STATUS_HOURS)
     async def update_presence(self):
         await self.update_status()
 
