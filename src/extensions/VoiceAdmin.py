@@ -1,13 +1,13 @@
 import logging
 
-from discord import Interaction, Member, VoiceChannel, VoiceState, PermissionOverwrite
+from discord import (Interaction, Member, PermissionOverwrite, VoiceChannel, VoiceState)
 from discord.app_commands import (command, default_permissions, describe, guild_only, rename)
 from discord.errors import Forbidden
 from discord.ext.commands import Bot, GroupCog
 
 from client import EsportsBot
 from common.discord import primary_key_from_object
-from common.io import load_cog_toml, load_banned_words
+from common.io import load_banned_words, load_cog_toml
 from common.util import r_replace
 from database.gateway import DBSession
 from database.models import VoiceAdminChild, VoiceAdminParent

@@ -1,8 +1,10 @@
-from discord.ext.commands import Bot, Cog
-from discord import Interaction
 import logging
+
+from discord import Interaction
+from discord.app_commands import command, default_permissions, describe, rename
+from discord.ext.commands import Bot, Cog
+
 from common.io import load_cog_toml
-from discord.app_commands import default_permissions, command
 
 COG_STRINGS = load_cog_toml(__name__)
 
