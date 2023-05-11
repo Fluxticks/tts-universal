@@ -44,6 +44,20 @@ class IGPost:
     post_videos: list[str] = None
 
 
+class PostUnavailableException(Exception):
+
+    def __init__(self, url: str):
+        super().__init__(f"URL is unavailable post: {url}")
+        self.url = url
+
+
+class InstagramInaccessibleException(Exception):
+
+    def __init__(self, url: str):
+        super().__init__(f"Instagram did not load: {url}")
+        self.url = url
+
+
 def make_embeds(post: IGPost) -> list[Embed]:
     if len(post.post_description) > 360:
         next_space = post.post_description.index(" ", 360)
@@ -100,6 +114,7 @@ class RequestHandler:
         self.list_mutex = asyncio.Lock()
         self.requst_mutex = asyncio.Lock()
         self.requests_to_make = []
+        self.logger = logging.getLogger(__name__)
 
     async def add_request(self, url: str):
         self.requests_to_make.append(url)
@@ -114,10 +129,19 @@ class RequestHandler:
             await context.clear_cookies()
 
             page = await context.new_page()
+            self.logger.info(f"Opening new page -> {url}")
             await page.goto(url, wait_until="networkidle")
+
+            self.logger.info("Checking for cookies...")
             decline_button = page.get_by_text("Decline optional cookies")
-            if decline_button:
+            try:
                 await decline_button.click()
+            except TimeoutError:
+                raise InstagramInaccessibleException(url)
+
+            unavailable_post = page.get_by_text("Sorry, this page isn't available.")
+            if not unavailable_post:
+                raise PostUnavailableException(url)
 
             reels_url_regex = r"https\:\/\/(www\.)?instagram\.com\/reel\/"
             if re.search(reels_url_regex, url):
@@ -127,6 +151,7 @@ class RequestHandler:
                         response.url
                     )
                 ) as response:
+                    self.logger.info("Downloading video file...")
                     value = await response.value
                     video_url = value.url
                     filename = os.path.join(
@@ -261,22 +286,42 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
 
     async def request_and_respond(self, url: str, message: Message = None, interaction: Interaction = None):
         await self.request_handler.add_request(url)
-        post_data, filename = await self.request_handler.make_request()
-        embeds = make_embeds(post_data)
-        if filename:
-            file = File(f"{filename}")
-        else:
-            file = MISSING
+        try:
+            post_data, filename = await self.request_handler.make_request()
+            embeds = make_embeds(post_data)
+            if filename:
+                file = File(f"{filename}")
+            else:
+                file = MISSING
 
-        if message:
-            if not message.flags.suppress_embeds:
-                await message.edit(suppress=True)
-            await message.reply(embeds=embeds, file=file, mention_author=False)
-        elif interaction:
-            await respond_or_followup(message="", interaction=interaction, embeds=embeds, file=file, delete_after=None)
+            if message:
+                if not message.flags.suppress_embeds:
+                    await message.edit(suppress=True)
+                await message.reply(embeds=embeds, file=file, mention_author=False)
+            elif interaction:
+                await respond_or_followup(message="", interaction=interaction, embeds=embeds, file=file, delete_after=None)
 
-        if filename:
-            os.remove(filename)
+            if filename:
+                os.remove(filename)
+
+        except InstagramInaccessibleException as e:
+            if message:
+                await message.reply(content=COG_STRINGS["warn_instagram_inaccessible"].format(url=e.url), mention_author=False)
+            elif interaction:
+                await respond_or_followup(
+                    message=COG_STRINGS["warn_instagram_inaccessible"].format(url=e.url),
+                    interaction=interaction,
+                    delete_after=10
+                )
+        except PostUnavailableException as e:
+            if message:
+                await message.reply(content=COG_STRINGS["warn_post_unavailable"].format(url=e.url), mention_author=False)
+            elif interaction:
+                await respond_or_followup(
+                    message=COG_STRINGS["warn_post_unavailable"].format(url=e.url),
+                    interaction=interaction,
+                    delete_after=10
+                )
 
     @GroupCog.listener()
     async def on_message(self, message: Message):
