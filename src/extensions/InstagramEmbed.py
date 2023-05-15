@@ -283,6 +283,7 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
         self.request_handler = RequestHandler()
         self.logger = logging.getLogger(__name__)
         self.logger.info(f"{__name__} has been added as a Cog")
+        self.tasks = set()
 
     async def request_and_respond(self, url: str, message: Message = None, interaction: Interaction = None):
         await self.request_handler.add_request(url)
@@ -333,11 +334,10 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
             return
 
         found_urls = re.finditer(REGEX_STR, message.content, re.MULTILINE)
-        background_tasks = set()
         for _, match in enumerate(found_urls, start=1):
             task = asyncio.create_task(self.request_and_respond(match.string, message=message))
-            background_tasks.add(task)
-            task.add_done_callback(background_tasks.discard)
+            self.tasks.add(task)
+            task.add_done_callback(self.tasks.discard)
 
     @command(name=COG_STRINGS["instagram_embed_name"], description=COG_STRINGS["instagram_embed_description"])
     @describe(url=COG_STRINGS["instagram_embed_url_describe"])
@@ -350,7 +350,9 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
             await respond_or_followup(message=COG_STRINGS["warn_invalid_url"], interaction=interaction)
             return
 
-        asyncio.create_task(self.request_and_respond(url, interaction=interaction))
+        task = asyncio.create_task(self.request_and_respond(url, interaction=interaction))
+        self.tasks.add(task)
+        task.add_done_callback(self.tasks.discard)
 
 
 async def setup(bot: Bot):
