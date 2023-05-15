@@ -19,7 +19,7 @@ from database.models import TikTokMessagesEnabled
 COG_STRINGS = load_cog_toml(__name__)
 # MOBILE = r"https\:\/\/vm\.tiktok\.com\/[a-zA-Z0-9]+"
 # DESKTOP_REGEX = r"https\:\/\/www\.tiktok\.com\/\@[a-zA-Z0-9]+\/video\/[0-9]+"
-REGEX_STR = r"(https\:\/\/vm\.tiktok\.com\/[a-zA-Z0-9]+)|(https\:\/\/www\.tiktok\.com\/\@[a-zA-Z0-9]+\/video\/[0-9]+)"
+REGEX_STR = r"(https\:\/\/vm\.tiktok\.com\/[a-zA-Z0-9]+)|(https\:\/\/www\.tiktok\.com\/\@[a-zA-Z0-9\.\_]+\/video\/[0-9]+)"
 TIKTOK_ICON = "https://cdn4.iconfinder.com/data/icons/social-media-flat-7/64/Social-media_Tiktok-1024.png"
 INTERACTION_PREFIX = f"{__name__}."
 
