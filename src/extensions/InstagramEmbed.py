@@ -15,7 +15,7 @@ from discord import Embed, File, Interaction, Message
 from discord.app_commands import command, default_permissions, describe, rename
 from discord.ext.commands import Bot, GroupCog
 from discord.utils import MISSING
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, TimeoutError
 
 from common.discord import respond_or_followup
 from common.io import load_cog_toml
@@ -124,7 +124,7 @@ class RequestHandler:
         filename = None
 
         async with async_playwright() as p:
-            browser = await p.firefox.launch()
+            browser = await p.firefox.launch(headless=False, slow_mo=50)
             context = await browser.new_context()
             await context.clear_cookies()
 
@@ -135,7 +135,7 @@ class RequestHandler:
             self.logger.info("Checking for cookies...")
             decline_button = page.get_by_text("Decline optional cookies")
             try:
-                await decline_button.click()
+                await decline_button.click(timeout=10000)
             except TimeoutError:
                 raise InstagramInaccessibleException(url)
 
