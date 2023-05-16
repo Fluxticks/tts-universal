@@ -124,7 +124,7 @@ class RequestHandler:
         filename = None
 
         async with async_playwright() as p:
-            browser = await p.firefox.launch(headless=False, slow_mo=50)
+            browser = await p.firefox.launch()
             context = await browser.new_context()
             await context.clear_cookies()
 
