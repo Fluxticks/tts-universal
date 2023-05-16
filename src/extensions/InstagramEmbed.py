@@ -357,7 +357,8 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
 
 async def setup(bot: Bot):
     import subprocess
-    subprocess.run(["python3", "-m", "playwright", "install"])
-    subprocess.run(["python3", "-m", "playwright", "install-deps"])
+    import sys
+    subprocess.run([sys.executable, "-m", "playwright", "install"])
+    subprocess.run([sys.executable, "-m", "playwright", "install-deps"])
     await bot.add_cog(InstagramEmbed(bot))
     await bot.add_cog(InstagramEmbedAdmin(bot))

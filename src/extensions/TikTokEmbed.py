@@ -153,8 +153,9 @@ async def setup(bot: Bot):
     import nest_asyncio
     nest_asyncio.apply()
     import subprocess
-    subprocess.run(["python3", "-m", "playwright", "install"])
-    subprocess.run(["python3", "-m", "playwright", "install-deps"])
+    import sys
+    subprocess.run([sys.executable, "-m", "playwright", "install"])
+    subprocess.run([sys.executable, "-m", "playwright", "install-deps"])
 
     await bot.add_cog(TikTokEmbed(bot))
     await bot.add_cog(TikTokEmbedAdmin(bot))
