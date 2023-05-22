@@ -11,10 +11,10 @@ except ModuleNotFoundError:
 
 if __name__ == "__main__":
     logger = logging.getLogger(__name__)
-    # if sys.platform not in ("win32", "cygwin", "cli"):
-    #     import uvloop
-    #     uvloop.install()
-    #     logger.info("UNIX platform detected, using uvloop for asyncio...")
+    if sys.platform not in ("win32", "cygwin", "cli"):
+        import uvloop
+        uvloop.install()
+        logger.info("UNIX platform detected, using uvloop for asyncio...")
 
     env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "secrets.env"))
     if not load_dotenv(dotenv_path=env_path):
