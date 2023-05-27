@@ -1,10 +1,12 @@
 import re
 from datetime import datetime
-from typing import List, Union
+from typing import Any, List, Union
 
 from discord import Colour, Interaction, Message, Role, ScheduledEvent
 from discord.abc import GuildChannel
 from discord.app_commands import Choice, Transformer
+from discord.app_commands.models import Choice
+from discord.interactions import Interaction
 
 
 async def respond_or_followup(
@@ -90,3 +92,19 @@ class ColourTransformer(Transformer):
                 return colour()
             except AttributeError:
                 return Colour.default()
+
+
+class TableTransformer(Transformer):
+
+    async def autocomplete(self, interaction: Interaction, value: str) -> List[Choice[str]]:
+        from database.models import __all__ as table_list
+
+        filtered_list = [x for x in table_list if value.lower() in x.lower()][:25]
+        choices = [Choice(name=x, value=x) for x in filtered_list]
+        return choices
+
+    async def transform(self, interaction: Interaction, value: Any) -> Any:
+        import database.models as models
+        models_dict = models.__dict__
+        model = models_dict.get(value)
+        return model
