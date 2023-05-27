@@ -1,15 +1,13 @@
 import logging
 import os
-import random
 import re
-from datetime import datetime
-from uuid import uuid4
 
 from discord import Embed, File, Interaction, Message
 from discord.app_commands import command, default_permissions, describe, rename
 from discord.ext.commands import Bot, GroupCog
-from TikTokApi import TikTokApi
-from TikTokApi.helpers import extract_video_id_from_url
+from tiktokdl.download_video import get_video
+from tiktokdl.exceptions import CaptchaFailedException, DownloadFailedException
+from tiktokdl.video_data import TikTokVideo
 
 from common.discord import respond_or_followup
 from common.io import load_cog_toml
@@ -20,45 +18,26 @@ COG_STRINGS = load_cog_toml(__name__)
 # MOBILE = r"https\:\/\/vm\.tiktok\.com\/[a-zA-Z0-9]+"
 # DESKTOP_REGEX = r"https\:\/\/www\.tiktok\.com\/\@[a-zA-Z0-9]+\/video\/[0-9]+"
 REGEX_STR = r"(https\:\/\/vm\.tiktok\.com\/[a-zA-Z0-9]+)|(https\:\/\/www\.tiktok\.com\/\@[a-zA-Z0-9\.\_]+\/video\/[0-9]+)"
-TIKTOK_ICON = "https://cdn4.iconfinder.com/data/icons/social-media-flat-7/64/Social-media_Tiktok-1024.png"
+TIKTOK_ICON = "https://cdn.pixabay.com/photo/2021/06/15/12/28/tiktok-6338430_1280.png"
 INTERACTION_PREFIX = f"{__name__}."
 
 
-def get_video(url: str):
-    video_id = extract_video_id_from_url(url)
-    did = str(random.randint(10000, 999999999))
-    with TikTokApi(use_test_endpoints=True, custom_device_id=did) as api:
-        video = api.video(id=video_id)
-        video_info = video.as_dict
-        video_data = video.bytes()
-    file = f"{uuid4()}.mp4"
-    with open(f"{file}", "wb") as f:
-        f.write(video_data)
-    video_info["localfile"] = file
-    return video_info
+def embed_from_video(video_info: TikTokVideo) -> Embed:
+    title = video_info.video_description.split("#")[0]
+    description = "#" + "#".join(video_info.video_description.split("#")[1:])
+    embed = Embed(color=0xff0050, title=title, description=description, url=video_info.url)
 
+    embed.set_thumbnail(url=video_info.video_thumbnail)
+    embed.set_author(name=f"{video_info.author_display_name}", url=video_info.author_url, icon_url=video_info.author_avatar)
+    embed.set_footer(
+        text=f"Posted on {video_info.timestamp.strftime('%d/%m/%Y')} at {video_info.timestamp.strftime('%-H:%M')}",
+        icon_url=TIKTOK_ICON
+    )
 
-def video_info_embed(video_data: dict):
-    author = video_data.get("author")
-    author_url = f"https://www.tiktok.com/@{author.get('uniqueId')}/"
-    video_url = f"{author_url}video/{video_data.get('id')}"
-    desc = video_data.get("desc")
-    hash_index = desc.index("#")
-    title = desc[:hash_index]
-    description = desc[hash_index - 1:]
-
-    embed = Embed(title=title, description=description, url=video_url, color=0xff0050)
-    embed.set_author(name=author.get("nickname"), icon_url=author.get("avatarThumb"), url=author_url)
-    timestamp = video_data.get("createTime")
-    timestamp_obj = datetime.fromtimestamp(timestamp)
-    embed.set_footer(icon_url=TIKTOK_ICON, text=f"Posted on {timestamp_obj.strftime('%d/%m/%Y')}")
-    embed.set_thumbnail(url=video_data.get("video").get("originCover"))
-
-    statistics = video_data.get("stats")
-    embed.add_field(inline=True, name="View Count 👀", value=f"{statistics.get('playCount'):,}")
-    embed.add_field(inline=True, name="Like Count ❤️", value=f"{statistics.get('diggCount'):,}")
-    embed.add_field(inline=True, name="Comment Count 💬", value=f"{statistics.get('commentCount'):,}")
-    embed.add_field(inline=True, name="Share Count 🚀", value=f"{statistics.get('shareCount'):,}")
+    embed.add_field(inline=True, name="View Count 👀", value=f"{video_info.view_count:,}")
+    embed.add_field(inline=True, name="Like Count ❤️", value=f"{video_info.like_count:,}")
+    embed.add_field(inline=True, name="Comment Count 💬", value=f"{video_info.comment_count:,}")
+    embed.add_field(inline=True, name="Share Count 🚀", value=f"{video_info.share_count:,}")
 
     return embed
 
@@ -120,12 +99,17 @@ class TikTokEmbed(GroupCog, name=COG_STRINGS["tiktok_group_name"]):
         should_suppress = False
 
         for _, match in enumerate(found_urls, start=1):
-            video_info = get_video(match.string)
-            file = video_info.get("localfile")
-            embed = video_info_embed(video_info)
-            await message.reply(embed=embed, file=File(f"{file}"), mention_author=False)
-            os.remove(file)
-            should_suppress = True
+            try:
+                video_info = await get_video(match.string)
+                file = video_info.file_path
+                embed = embed_from_video(video_info)
+                await message.reply(embed=embed, file=File(f"{file}"), mention_author=False)
+                os.remove(file)
+                should_suppress = True
+            except CaptchaFailedException:
+                await message.reply(COG_STRINGS["tiktok_warn_captcha_failed"], mention_author=False)
+            except DownloadFailedException:
+                await message.reply(COG_STRINGS["tiktok_warn_download_failed"], mention_author=False)
 
         if should_suppress:
             await message.edit(suppress=True)
@@ -138,25 +122,34 @@ class TikTokEmbed(GroupCog, name=COG_STRINGS["tiktok_group_name"]):
 
         found_urls = re.finditer(REGEX_STR, url, re.MULTILINE)
         if not found_urls:
-            await respond_or_followup(message=COG_STRINGS["warn_invalid_url"], interaction=interaction)
+            await respond_or_followup(message=COG_STRINGS["tiktok_warn_invalid_url"], interaction=interaction)
             return
 
-        video_info = get_video(url)
-        file = video_info.get("localfile")
-        embed = video_info_embed(video_info)
+        try:
+            video_info = await get_video(url)
+            file = video_info.file_path
+            embed = embed_from_video(video_info)
 
-        await respond_or_followup(message="", interaction=interaction, embed=embed, file=File(f"{file}"), delete_after=None)
-        os.remove(file)
+            await respond_or_followup(
+                message="",
+                interaction=interaction,
+                embed=embed,
+                file=File(f"{file}"),
+                delete_after=None
+            )
+            os.remove(file)
+        except CaptchaFailedException:
+            await respond_or_followup(COG_STRINGS["tiktok_warn_captcha_failed"], interaction=interaction, delete_after=30)
+        except DownloadFailedException:
+            await respond_or_followup(COG_STRINGS["tiktok_warn_download_failed"], interaction=interaction, delete_after=30)
 
 
 async def setup(bot: Bot):
-    # import nest_asyncio
-    # nest_asyncio.apply()
-    # import subprocess
-    # import sys
-    # subprocess.run([sys.executable, "-m", "playwright", "install"])
-    # subprocess.run([sys.executable, "-m", "playwright", "install-deps"])
+    import subprocess
+    import sys
+    subprocess.run([sys.executable, "-m", "playwright", "install"])
+    subprocess.run([sys.executable, "-m", "playwright", "install-deps"])
 
-    # await bot.add_cog(TikTokEmbed(bot))
-    # await bot.add_cog(TikTokEmbedAdmin(bot))
+    await bot.add_cog(TikTokEmbed(bot))
+    await bot.add_cog(TikTokEmbedAdmin(bot))
     return

@@ -1,7 +1,9 @@
 tiktok_group_name="tiktok"
 tiktok_admin_group_name="tiktok-ad"
 
-warn_invalid_url="The given URL is not a valid TikTok URL ⚠️"
+tiktok_warn_invalid_url="The given URL is not a valid TikTok URL ⚠️"
+tiktok_warn_captcha_failed="Unable to solve the TikTok captcha at the moment, please try again later... ⚠️"
+tiktok_warn_download_failed="Unable to receive the video download at the moment, please try again later... ⚠️"
 
 tiktok_embed_name="embed"
 tiktok_embed_description="Send a tiktok URL with a proper embed"

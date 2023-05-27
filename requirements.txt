@@ -9,10 +9,7 @@ yt-dlp
 google-api-python-client
 toml
 asyncpraw
-playwright==1.30.0
-TikTokAPI
-nest-asyncio
-requests==2.29.0
-pillow
+playwright
 bs4
 lxml
+git+https://github.com/Fluxticks/TikTokDL
