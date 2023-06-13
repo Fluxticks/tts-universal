@@ -600,7 +600,8 @@ class VCMusicAdmin(GroupCog, name=COG_STRINGS["music_admin_group_name"]):
 
     @GroupCog.listener()
     async def on_ready(self):
-        self.update_author.start()
+        if not self.update_author.is_running():
+            self.update_author.start()
 
     @tasks.loop(hours=2)
     async def update_author(self):

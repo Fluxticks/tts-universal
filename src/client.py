@@ -63,7 +63,8 @@ class __EsportsBot(Bot):
         await self.tree.sync(guild=DEV_GUILD)
 
     async def on_ready(self):
-        self.update_presence.start()
+        if not self.update_presence.is_running():
+            self.update_presence.start()
 
     async def update_quotes(self):
         try:
