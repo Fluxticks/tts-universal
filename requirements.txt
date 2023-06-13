@@ -12,4 +12,4 @@ asyncpraw
 playwright
 bs4
 lxml
-git+https://github.com/Fluxticks/TikTokDL
+tiktok-dlpy
