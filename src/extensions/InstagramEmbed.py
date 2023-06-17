@@ -170,6 +170,8 @@ class RequestHandler:
         soup = BeautifulSoup(page_source, "lxml")
         script = soup.find("script", attrs={"type": "application/ld+json"})
         script_data = json.loads(script.text)
+        if isinstance(script_data, list):
+            script_data = script_data[0]
 
         description = script_data.get("articleBody")
         url = script_data.get("mainEntityOfPage").get("@id").replace("\\", "")
