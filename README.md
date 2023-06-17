@@ -211,7 +211,7 @@ $ git clone https://github.com/Fluxticks/tts-universal.git
 2. Change into the repo directory:
 
 ```console
-$ cd esports-bot
+$ cd tts-universal
 ```
 
 3. Rename the `secrets.template` to `secrets.env` and set all the variables.
