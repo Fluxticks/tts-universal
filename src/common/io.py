@@ -1,8 +1,9 @@
-import json
+import csv
 import logging
 import os
+import subprocess
 from typing import Dict
-import csv
+from uuid import uuid4
 
 import toml
 
@@ -63,3 +64,27 @@ def load_quotes() -> tuple[list[str], list[dict[str, any]]]:
         return labels, lines
     except FileNotFoundError:
         return [], [{}]
+
+
+def stitch_videos(video_list: list[str], output_file: str | None = None) -> str | None:
+    base_path = os.path.abspath(os.path.curdir)
+    videos_file = os.path.join(base_path, f"{uuid4()}.txt")
+    with open(videos_file, "w") as f:
+        for video in video_list:
+            if not os.path.isabs(video):
+                video = os.path.join(base_path, video)
+            f.write(f"file '{video}'\n")
+
+    if not output_file:
+        output_file = f"{uuid4()}.mp4"
+
+    if os.path.isabs(output_file):
+        output_file = os.path.join(base_path, output_file)
+
+    try:
+        subprocess.run(["ffmpeg", "-f", "concat", "-safe", "0", "-i", videos_file, "-c", "copy", output_file], check=True)
+        os.remove(videos_file)
+        return output_file
+    except subprocess.CalledProcessError:
+        os.remove(videos_file)
+        return None

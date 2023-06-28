@@ -201,6 +201,7 @@ Requirements needed to run:
 - [A postgres 11 database](https://www.postgresql.org/docs/current/admin.html)
   - If using the `DB_OVERRIDE` environment variable, any valid DB schema for SQLAlchemy can be used by providing the correct schema URI. These can be [found here](https://docs.sqlalchemy.org/en/14/dialects/).
 - To use the `RedditEmbed` extension, you need to create a Reddit "Personal Use Script" [application](https://www.reddit.com/prefs/apps). If you are unsure, use `http://localhost:8080` for your redirect_uri.
+- ffmpeg for Music and Instagram features
 
 1. Clone this repository:
 
