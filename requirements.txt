@@ -13,3 +13,4 @@ playwright
 bs4
 lxml
 tiktok-dlpy
+git+https://github.com/fluxticks/InstagramDL
