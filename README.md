@@ -28,6 +28,10 @@ This extension is used for any commands that don't fit into an existing extensio
 
 - Refresh the current list of quotes and change to a new random one in the list.
 
+#### /get-table \<table\>
+
+- Get a simpe view of a given database table.
+
 #### /export-chat \<message-count\> [optional: channel]
 
 - Get a csv of the messages in a given channel. If no channel provided, uses the current one.
