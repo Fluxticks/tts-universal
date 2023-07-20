@@ -117,6 +117,11 @@ class GenericCommands(Cog):
         if not channel:
             channel = interaction.channel
 
+        channel_permissions = channel.permissions_for(self.bot.user)
+        if not channel_permissions.view_channel or not channel_permissions.read_messages or not channel_permissions.read_message_history:
+            await interaction.response.send_message(COG_STRINGS["error_channel_not_viewable"].format(channel=channel.mention))
+            return
+
         await interaction.response.defer(ephemeral=True)
 
         date = datetime.now().strftime("%d_%m_%Y")
