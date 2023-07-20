@@ -6,11 +6,11 @@ from discord import Embed, File, Interaction, Message
 from discord.app_commands import command, default_permissions, describe, rename
 from discord.ext.commands import Bot, GroupCog
 from tiktokdl.download_video import get_video
-from tiktokdl.exceptions import CaptchaFailedException, DownloadFailedException
+from tiktokdl.exceptions import CaptchaFailedException, DownloadFailedException, ResponseParseException
 from tiktokdl.video_data import TikTokVideo
 
 from common.discord import respond_or_followup
-from common.io import load_cog_toml
+from common.io import load_cog_toml, reduce_video, MAX_FILE_BYTES
 from database.gateway import DBSession
 from database.models import TikTokMessagesEnabled
 
@@ -101,7 +101,9 @@ class TikTokEmbed(GroupCog, name=COG_STRINGS["tiktok_group_name"]):
         for _, match in enumerate(found_urls, start=1):
             try:
                 video_info = await get_video(match.string)
-                file = video_info.file_path
+                file = reduce_video(video_info.file_path)
+                if os.path.getsize(file) > MAX_FILE_BYTES:
+                    file = reduce_video(file)
                 embed = embed_from_video(video_info)
                 await message.reply(embed=embed, file=File(f"{file}"), mention_author=False)
                 os.remove(file)
@@ -127,21 +129,21 @@ class TikTokEmbed(GroupCog, name=COG_STRINGS["tiktok_group_name"]):
 
         try:
             video_info = await get_video(url)
-            file = video_info.file_path
-            embed = embed_from_video(video_info)
+            if os.path.getsize(video_info.file_path) >= MAX_FILE_BYTES:
+                await interaction.edit_original_response(content=COG_STRINGS["tiktok_file_too_big"])
+                file = reduce_video(video_info.file_path)
+            else:
+                file = video_info.file_path
 
-            await respond_or_followup(
-                message="",
-                interaction=interaction,
-                embed=embed,
-                file=File(f"{file}"),
-                delete_after=None
-            )
+            embed = embed_from_video(video_info)
+            await interaction.edit_original_response(content="", embed=embed, attachments=[File(f"{file}")])
             os.remove(file)
         except CaptchaFailedException:
             await respond_or_followup(COG_STRINGS["tiktok_warn_captcha_failed"], interaction=interaction, delete_after=30)
         except DownloadFailedException:
             await respond_or_followup(COG_STRINGS["tiktok_warn_download_failed"], interaction=interaction, delete_after=30)
+        except ResponseParseException:
+            await respond_or_followup(COG_STRINGS["tiktok_warn_parse_error"], interaction, delete_after=30)
 
 
 async def setup(bot: Bot):

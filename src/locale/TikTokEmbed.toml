@@ -4,6 +4,8 @@ tiktok_admin_group_name="tiktok-ad"
 tiktok_warn_invalid_url="The given URL is not a valid TikTok URL ⚠️"
 tiktok_warn_captcha_failed="Unable to solve the TikTok captcha at the moment, please try again later... ⚠️"
 tiktok_warn_download_failed="Unable to receive the video download at the moment, please try again later... ⚠️"
+tiktok_warn_parse_error="Unable to gather post contents at the moment, please try again later... ⚠️"
+tiktok_file_too_big="Video file exceeds 25MB, converting to a smaller size, please wait... ⏳"
 
 tiktok_embed_name="embed"
 tiktok_embed_description="Send a tiktok URL with a proper embed"
