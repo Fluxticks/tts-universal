@@ -95,8 +95,11 @@ class GenericCommands(Cog):
     @rename(table=COG_STRINGS["db_tables_table_rename"])
     @autocomplete(table=TableTransformer.autocomplete)
     @default_permissions(administrator=True)
-    @guilds(int(os.getenv("OWNER_GUILD_ID")))
     async def get_db_table(self, interaction: Interaction, table: Transform[TableBase, TableTransformer]):
+        if str(interaction.user.id) != str(os.getenv("OWNER_USER_ID")):
+            await interaction.response.send_message(COG_STRINGS["error_user_not_owner"], ephemeral=True)
+            return
+
         table_data = DBSession.list(table=table)
         await interaction.response.send_message(pretty_print_table(table_data), ephemeral=True)
 

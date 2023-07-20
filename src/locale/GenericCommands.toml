@@ -1,3 +1,5 @@
+error_user_not_owner="Only the bot owner can use this command ❌"
+
 reload_quotes_name="reload-quotes"
 relaod_quotes_description="Update the current quote list."
 reload_quotes_success="Quotes list updated ✅"
