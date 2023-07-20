@@ -82,7 +82,7 @@ class GenericCommands(Cog):
         self.bot = bot
         self.logger = logging.getLogger(__name__)
 
-    @command(name=COG_STRINGS["reload_quotes_name"], description=COG_STRINGS["relaod_quotes_description"])
+    @command(name=COG_STRINGS["reload_quotes_name"], description=COG_STRINGS["reload_quotes_description"])
     @default_permissions(administrator=True)
     async def reload_quotes(self, interaction: Interaction):
         if await self.bot.update_quotes():
