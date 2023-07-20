@@ -4,6 +4,7 @@ instagram_admin_group_name="insta-ad"
 warn_invalid_url="The given URL is not a valid Instagram URL ⚠️"
 warn_instagram_inaccessible="Unable to access Instagram currently, please try again later ⚠️"
 warn_post_unavailable="Unable to access the given post. It may be from a private account ⚠️"
+instagram_file_too_big="Video file exceeds 25MB, converting to a smaller size, please wait... ⏳"
 
 instagram_embed_name="embed"
 instagram_embed_description="Send an Instagram URL with a proper embed"

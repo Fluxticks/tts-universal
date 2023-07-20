@@ -12,9 +12,10 @@ from instagramdl.get_post import RequestHandler
 from instagramdl.post_data import InstagramPost
 
 from common.discord import respond_or_followup
-from common.io import load_cog_toml, stitch_videos
+from common.io import load_cog_toml, stitch_videos, MAX_FILE_BYTES
 from database.gateway import DBSession
 from database.models import InstagramMessagesEnabled
+from src.common.io import reduce_video
 
 COG_STRINGS = load_cog_toml(__name__)
 REGEX_STR = r"https\:\/\/www\.instagram\.com\/(reel|p)\/[a-zA-Z0-9]+"
@@ -177,6 +178,14 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
                 post.post_video_files.append(video)
             else:
                 video = post.post_video_files[0]
+
+            file_size = os.path.getsize(video)
+            if file_size >= MAX_FILE_BYTES:
+                if interaction:
+                    await interaction.edit_original_response(content=COG_STRINGS["instagram_file_too_big"])
+                video = reduce_video(video)
+                post.post_video_files[-1] = video
+
             file = File(f"{video}")
         else:
             file = MISSING
@@ -186,7 +195,7 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
                 await message.edit(suppress=True)
             await message.reply(embeds=embeds, file=file, mention_author=False)
         elif interaction:
-            await respond_or_followup(message="", interaction=interaction, embeds=embeds, file=file, delete_after=None)
+            await interaction.edit_original_response(content="", embeds=embeds, attachments=[file])
 
         for file in post.post_video_files:
             os.remove(file)
