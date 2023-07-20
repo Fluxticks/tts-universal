@@ -117,7 +117,7 @@ class GenericCommands(Cog):
         if not channel:
             channel = interaction.channel
 
-        channel_permissions = channel.permissions_for(self.bot.user)
+        channel_permissions = channel.permissions_for(interaction.guild.me)
         if not channel_permissions.view_channel or not channel_permissions.read_messages or not channel_permissions.read_message_history:
             await interaction.response.send_message(
                 COG_STRINGS["export_channel_not_viewable_error"].format(channel=channel.mention),
