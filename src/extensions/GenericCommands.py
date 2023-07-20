@@ -1,8 +1,9 @@
 import logging
 import os
+from datetime import datetime
 
-from discord import Interaction
-from discord.app_commands import command, describe, rename, autocomplete, Transform
+from discord import File, Interaction, TextChannel
+from discord.app_commands import command, describe, rename, autocomplete, Range, Transform
 from discord.ext.commands import Bot, Cog
 
 from common.io import load_cog_toml
@@ -104,6 +105,54 @@ class GenericCommands(Cog):
 
         table_data = DBSession.list(table=table)
         await interaction.response.send_message(pretty_print_table(table_data), ephemeral=True)
+
+    @command(name=COG_STRINGS["export_chat_name"], description=COG_STRINGS["export_chat_description"])
+    @describe(count=COG_STRINGS["export_chat_count_describe"], channel=COG_STRINGS["export_chat_channel_describe"])
+    @rename(count=COG_STRINGS["export_chat_count_rename"], channel=COG_STRINGS["export_chat_channel_rename"])
+    async def export_chat(self, interaction: Interaction, count: Range[int, 1, 100], channel: TextChannel = None):
+        if str(interaction.user.id) != str(os.getenv("OWNER_USER_ID")):
+            await interaction.response.send_message(COG_STRINGS["error_user_not_owner"], ephemeral=True)
+            return
+
+        if not channel:
+            channel = interaction.channel
+
+        await interaction.response.defer(ephemeral=True)
+
+        date = datetime.now().strftime("%d_%m_%Y")
+        file_name = f"Export of #{channel.name} on {date}.csv"
+
+        with open(file_name, "w") as f:
+            f.write("author,timestamp,message\n")
+            async for message in channel.history(limit=count, oldest_first=True):
+                author = message.author
+                timestamp = message.created_at
+                contents = message.content.replace('"', '\'').replace("\n", "\\n")
+
+                for member in message.mentions:
+                    contents = contents.replace(member.mention, f"@{member!s}")
+                    contents = contents.replace(f"<@!{member.id}>", f"@{member!s}")
+
+                for role in message.role_mentions:
+                    contents = contents.replace(role.mention, f"@{role.name}")
+                    contents = contents.replace(f"<@&{role.id}>", f"@{role.name}")
+
+                for channel in message.channel_mentions:
+                    contents = contents.replace(channel.mention, f"#{channel.name}")
+
+                if message.attachments:
+                    contents += f" [Attachments: {','.join([x.url for x in message.attachments])}]"
+
+                line = f"{author!s},{timestamp.timestamp()},\"{contents}\"\n"
+                f.write(line)
+
+        await interaction.followup.send(
+            content=COG_STRINGS["export_chat_done"].format(count=count),
+            ephemeral=True,
+            file=File(f"{file_name}")
+        )
+
+        os.remove(file_name)
 
 
 async def setup(bot: Bot):
