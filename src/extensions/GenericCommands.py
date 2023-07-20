@@ -124,7 +124,7 @@ class GenericCommands(Cog):
 
         with open(file_name, "w") as f:
             f.write("author,timestamp,message\n")
-            async for message in channel.history(limit=count, oldest_first=True):
+            async for message in channel.history(limit=count):
                 author = message.author
                 timestamp = message.created_at
                 contents = message.content.replace('"', '\'').replace("\n", "\\n")
