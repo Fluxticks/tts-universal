@@ -1,5 +1,6 @@
 import csv
 import logging
+import math
 import os
 import subprocess
 from typing import Dict
@@ -7,6 +8,7 @@ from uuid import uuid4
 
 import toml
 
+MAX_FILE_BYTES = 25_000_000
 logger = logging.getLogger(__name__)
 
 
@@ -87,4 +89,28 @@ def stitch_videos(video_list: list[str], output_file: str | None = None) -> str 
         return output_file
     except subprocess.CalledProcessError:
         os.remove(videos_file)
+        return None
+
+
+def reduce_video(video_file: list[str], output_file: str | None = None) -> str | None:
+
+    def get_crf(file_size):
+        result = 21 + 25 * math.log(file_size / MAX_FILE_BYTES, 2)
+        return round(result, 1)
+
+    if not os.path.isabs(video_file):
+        video_file = os.path.join(os.path.abspath(os.path.curdir), video_file)
+
+    file_size = os.path.getsize(video_file)
+    if not output_file:
+        output_file = os.path.join(os.path.abspath(os.path.curdir), f"{uuid4()}.mp4")
+
+    video_crf = get_crf(file_size)
+
+    try:
+        subprocess.run(["ffmpeg", "-i", video_file, "-vcodec", "libx264", "-crf", f"{video_crf!s}", output_file])
+        os.remove(video_file)
+        os.rename(output_file, video_file)
+        return video_file
+    except subprocess.CalledProcessError:
         return None
