@@ -151,20 +151,23 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
             post = await self.request_handler.make_next_request()
         except InstagramInaccessibleException as e:
             if message:
-                await message.reply(content=COG_STRINGS["warn_instagram_inaccessible"].format(url=e.url), mention_author=False)
+                await message.reply(content=COG_STRINGS["instagram_warn_inaccessible"].format(url=e.url), mention_author=False)
             elif interaction:
                 await respond_or_followup(
-                    message=COG_STRINGS["warn_instagram_inaccessible"].format(url=e.url),
+                    message=COG_STRINGS["instagram_warn_inaccessible"].format(url=e.url),
                     interaction=interaction,
                     delete_after=10
                 )
             return
         except PostUnavailableException as e:
             if message:
-                await message.reply(content=COG_STRINGS["warn_post_unavailable"].format(url=e.url), mention_author=False)
+                await message.reply(
+                    content=COG_STRINGS["instagram_warn_post_unavailable"].format(url=e.url),
+                    mention_author=False
+                )
             elif interaction:
                 await respond_or_followup(
-                    message=COG_STRINGS["warn_post_unavailable"].format(url=e.url),
+                    message=COG_STRINGS["instagram_warn_post_unavailable"].format(url=e.url),
                     interaction=interaction,
                     delete_after=10
                 )
@@ -207,7 +210,7 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
         await interaction.response.defer()
         validate_url = re.search(REGEX_STR, url)
         if not validate_url:
-            await respond_or_followup(message=COG_STRINGS["warn_invalid_url"], interaction=interaction)
+            await respond_or_followup(message=COG_STRINGS["instagram_warn_invalid_url"], interaction=interaction)
             return
 
         task = asyncio.create_task(self.post_response(url=url, interaction=interaction))
