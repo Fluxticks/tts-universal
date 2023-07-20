@@ -2,7 +2,7 @@ import logging
 import os
 
 from discord import Interaction
-from discord.app_commands import command, default_permissions, describe, rename, guilds, autocomplete, Transform
+from discord.app_commands import command, describe, rename, autocomplete, Transform
 from discord.ext.commands import Bot, Cog
 
 from common.io import load_cog_toml
@@ -83,8 +83,11 @@ class GenericCommands(Cog):
         self.logger = logging.getLogger(__name__)
 
     @command(name=COG_STRINGS["reload_quotes_name"], description=COG_STRINGS["reload_quotes_description"])
-    @default_permissions(administrator=True)
     async def reload_quotes(self, interaction: Interaction):
+        if str(interaction.user.id) != str(os.getenv("OWNER_USER_ID")):
+            await interaction.response.send_message(COG_STRINGS["error_user_not_owner"], ephemeral=True)
+            return
+
         if await self.bot.update_quotes():
             await interaction.response.send_message(COG_STRINGS["reload_quotes_success"], ephemeral=True, delete_after=5.0)
         else:
@@ -94,7 +97,6 @@ class GenericCommands(Cog):
     @describe(table=COG_STRINGS["db_tables_table_describe"])
     @rename(table=COG_STRINGS["db_tables_table_rename"])
     @autocomplete(table=TableTransformer.autocomplete)
-    @default_permissions(administrator=True)
     async def get_db_table(self, interaction: Interaction, table: Transform[TableBase, TableTransformer]):
         if str(interaction.user.id) != str(os.getenv("OWNER_USER_ID")):
             await interaction.response.send_message(COG_STRINGS["error_user_not_owner"], ephemeral=True)
