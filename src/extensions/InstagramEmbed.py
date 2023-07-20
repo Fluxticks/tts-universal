@@ -15,7 +15,7 @@ from common.discord import respond_or_followup
 from common.io import load_cog_toml, stitch_videos, MAX_FILE_BYTES
 from database.gateway import DBSession
 from database.models import InstagramMessagesEnabled
-from src.common.io import reduce_video
+from common.io import reduce_video
 
 COG_STRINGS = load_cog_toml(__name__)
 REGEX_STR = r"https\:\/\/www\.instagram\.com\/(reel|p)\/[a-zA-Z0-9]+"
