@@ -101,8 +101,8 @@ class TikTokEmbed(GroupCog, name=COG_STRINGS["tiktok_group_name"]):
         for _, match in enumerate(found_urls, start=1):
             try:
                 video_info = await get_video(match.string)
-                file = reduce_video(video_info.file_path)
-                if os.path.getsize(file) > MAX_FILE_BYTES:
+                file = video_info.file_path
+                if os.path.getsize(file) >= MAX_FILE_BYTES:
                     file = reduce_video(file)
                 embed = embed_from_video(video_info)
                 await message.reply(embed=embed, file=File(f"{file}"), mention_author=False)
