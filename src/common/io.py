@@ -106,6 +106,8 @@ def reduce_video(video_file: list[str], output_file: str | None = None) -> str |
         output_file = os.path.join(os.path.abspath(os.path.curdir), f"{uuid4()}.mp4")
 
     video_crf = get_crf(file_size)
+    if video_crf < 0 or video_crf > 51:
+        return None
 
     try:
         subprocess.run(["ffmpeg", "-i", video_file, "-vcodec", "libx264", "-crf", f"{video_crf!s}", output_file])
