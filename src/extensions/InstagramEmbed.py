@@ -146,7 +146,12 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
             task.add_done_callback(self.current_requests.discard)
 
     async def post_response(self, url: str, message: Message = None, interaction: Interaction = None):
-        await self.request_handler.add_request(url)
+
+        #TODO: This is a workaround, needs improving
+        async def callback(*args, **kwargs):
+            print("done")
+
+        await self.request_handler.add_request(url, callback=callback)
         try:
             post = await self.request_handler.make_next_request()
         except InstagramInaccessibleException as e:
