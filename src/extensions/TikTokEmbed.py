@@ -51,13 +51,12 @@ def embed_from_video(video_info: TikTokVideo) -> Embed:
 def embed_from_slide(slide_info: TikTokSlide) -> list[Embed]:
     primary_embed = embed_from_post(slide_info)
     primary_embed.insert_field_at(index=0, inline=False, name="Image Count 📸", value=len(slide_info.images))
-    images = slide_info.images
 
-    primary_embed.set_image(url=f"attachment://{images.pop(0)}")
+    primary_embed.set_image(url=f"attachment://{slide_info.images[0]}")
     embed_list = [primary_embed]
-    for image in images:
+    for x in range(1, len(slide_info.images)):
         embed = Embed(url=slide_info.url)
-        embed.set_image(url=f"attachment://{image}")
+        embed.set_image(url=f"attachment://{slide_info.images[x]}")
         embed_list.append(embed)
 
     return embed_list
