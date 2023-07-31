@@ -7,7 +7,7 @@ from discord.app_commands import command, default_permissions, describe, rename
 from discord.ext.commands import Bot, GroupCog
 from tiktokdl.download_post import get_post
 from tiktokdl.exceptions import CaptchaFailedException, DownloadFailedException, ResponseParseException
-from tiktokdl.post_data import TikTokVideo
+from tiktokdl.post_data import TikTokVideo, TikTokSlide
 
 from common.discord import respond_or_followup
 from common.io import load_cog_toml, reduce_video, MAX_FILE_BYTES
@@ -22,23 +22,29 @@ TIKTOK_ICON = "https://cdn.pixabay.com/photo/2021/06/15/12/28/tiktok-6338430_128
 INTERACTION_PREFIX = f"{__name__}."
 
 
-def embed_from_video(video_info: TikTokVideo) -> Embed:
-    title = video_info.post_description.split("#")[0]
-    description = "#" + "#".join(video_info.post_description.split("#")[1:])
-    embed = Embed(color=0xff0050, title=title, description=description, url=video_info.url)
+def embed_from_post(post_info: TikTokVideo | TikTokSlide) -> Embed:
+    title = post_info.post_description.split("#")[0]
+    description = "#" + "#".join(post_info.post_description.split("#")[1:])
 
-    embed.set_thumbnail(url=video_info.video_thumbnail)
-    embed.set_author(name=f"{video_info.author_display_name}", url=video_info.author_url, icon_url=video_info.author_avatar)
+    embed = Embed(color=0xff0050, title=title, description=description, url=post_info.url)
+
+    embed.set_author(name=f"{post_info.author_display_name}", url=post_info.author_url, icon_url=post_info.author_avatar)
     embed.set_footer(
-        text=f"Posted on {video_info.timestamp.strftime('%d/%m/%Y')} at {video_info.timestamp.strftime('%-H:%M')}",
+        text=f"Posted on {post_info.timestamp.strftime('%d/%m/%Y')} at {post_info.timestamp.strftime('%-H:%M')}",
         icon_url=TIKTOK_ICON
     )
 
-    embed.add_field(inline=True, name="View Count 👀", value=f"{video_info.view_count:,}")
-    embed.add_field(inline=True, name="Like Count ❤️", value=f"{video_info.like_count:,}")
-    embed.add_field(inline=True, name="Comment Count 💬", value=f"{video_info.comment_count:,}")
-    embed.add_field(inline=True, name="Share Count 🚀", value=f"{video_info.share_count:,}")
+    embed.add_field(inline=True, name="View Count 👀", value=f"{post_info.view_count:,}")
+    embed.add_field(inline=True, name="Like Count ❤️", value=f"{post_info.like_count:,}")
+    embed.add_field(inline=True, name="Comment Count 💬", value=f"{post_info.comment_count:,}")
+    embed.add_field(inline=True, name="Share Count 🚀", value=f"{post_info.share_count:,}")
 
+    return embed
+
+
+def embed_from_video(video_info: TikTokVideo) -> Embed:
+    embed = embed_from_post(video_info)
+    embed.set_thumbnail(url=video_info.video_thumbnail)
     return embed
 
 
