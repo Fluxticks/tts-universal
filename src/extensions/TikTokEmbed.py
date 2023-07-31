@@ -5,9 +5,9 @@ import re
 from discord import Embed, File, Interaction, Message
 from discord.app_commands import command, default_permissions, describe, rename
 from discord.ext.commands import Bot, GroupCog
-from tiktokdl.download_video import get_video
+from tiktokdl.download_post import get_post
 from tiktokdl.exceptions import CaptchaFailedException, DownloadFailedException, ResponseParseException
-from tiktokdl.video_data import TikTokVideo
+from tiktokdl.post_data import TikTokVideo
 
 from common.discord import respond_or_followup
 from common.io import load_cog_toml, reduce_video, MAX_FILE_BYTES
@@ -23,8 +23,8 @@ INTERACTION_PREFIX = f"{__name__}."
 
 
 def embed_from_video(video_info: TikTokVideo) -> Embed:
-    title = video_info.video_description.split("#")[0]
-    description = "#" + "#".join(video_info.video_description.split("#")[1:])
+    title = video_info.post_description.split("#")[0]
+    description = "#" + "#".join(video_info.post_description.split("#")[1:])
     embed = Embed(color=0xff0050, title=title, description=description, url=video_info.url)
 
     embed.set_thumbnail(url=video_info.video_thumbnail)
@@ -100,7 +100,7 @@ class TikTokEmbed(GroupCog, name=COG_STRINGS["tiktok_group_name"]):
 
         for _, match in enumerate(found_urls, start=1):
             try:
-                video_info = await get_video(match.string)
+                video_info = await get_post(match.string)
                 file = video_info.file_path
                 if os.path.getsize(file) >= MAX_FILE_BYTES:
                     file = reduce_video(file)
@@ -128,7 +128,7 @@ class TikTokEmbed(GroupCog, name=COG_STRINGS["tiktok_group_name"]):
             return
 
         try:
-            video_info = await get_video(url)
+            video_info = await get_post(url)
             if os.path.getsize(video_info.file_path) >= MAX_FILE_BYTES:
                 await interaction.edit_original_response(content=COG_STRINGS["tiktok_file_too_big"])
                 file = reduce_video(video_info.file_path)

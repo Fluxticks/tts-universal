@@ -12,5 +12,5 @@ asyncpraw
 playwright
 bs4
 lxml
-tiktok-dlpy
+tiktok-dlpy>=1.3.0
 git+https://github.com/fluxticks/InstagramDL
