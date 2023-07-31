@@ -48,6 +48,20 @@ def embed_from_video(video_info: TikTokVideo) -> Embed:
     return embed
 
 
+def embed_from_slide(slide_info: TikTokSlide) -> list[Embed]:
+    primary_embed = embed_from_post(slide_info)
+    images = slide_info.images
+
+    primary_embed.set_image(f"attachment://{images.pop(0)}")
+    embed_list = [primary_embed]
+    for image in images:
+        embed = Embed(url=slide_info.url)
+        embed.set_image(f"attachment://{image}")
+        embed_list.append(embed)
+
+    return embed_list
+
+
 @default_permissions(administrator=True)
 class TikTokEmbedAdmin(GroupCog, name=COG_STRINGS["tiktok_admin_group_name"]):
 
