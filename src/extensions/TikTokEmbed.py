@@ -80,6 +80,25 @@ async def respond_to_message(message: Message, post_data: TikTokVideo | TikTokSl
     return True
 
 
+async def respond_to_interaction(interaction: Interaction, post_data: TikTokVideo | TikTokSlide):
+    if isinstance(post_data, TikTokVideo):
+        if os.path.getsize(post_data.file_path) >= MAX_FILE_BYTES:
+            await interaction.edit_original_response(content=COG_STRINGS["tiktok_file_too_big"])
+            file = reduce_video(post_data.file_path)
+        else:
+            file = post_data.file_path
+
+        embed = embed_from_video(post_data)
+        await interaction.edit_original_response(content="", embed=embed, attachments=[File(f"{file}")])
+        os.remove(file)
+    else:
+        embeds = embed_from_slide(post_data)
+        files = [File(x, filename=x) for x in post_data.images]
+        await interaction.edit_original_response(content="", embeds=embeds, attachments=files)
+        for file in post_data.images:
+            os.remove(file)
+
+
 @default_permissions(administrator=True)
 class TikTokEmbedAdmin(GroupCog, name=COG_STRINGS["tiktok_admin_group_name"]):
 
@@ -160,16 +179,8 @@ class TikTokEmbed(GroupCog, name=COG_STRINGS["tiktok_group_name"]):
             return
 
         try:
-            video_info = await get_post(url)
-            if os.path.getsize(video_info.file_path) >= MAX_FILE_BYTES:
-                await interaction.edit_original_response(content=COG_STRINGS["tiktok_file_too_big"])
-                file = reduce_video(video_info.file_path)
-            else:
-                file = video_info.file_path
-
-            embed = embed_from_video(video_info)
-            await interaction.edit_original_response(content="", embed=embed, attachments=[File(f"{file}")])
-            os.remove(file)
+            post_info = await get_post(url)
+            await respond_to_interaction(interaction, post_info)
         except CaptchaFailedException:
             await respond_or_followup(COG_STRINGS["tiktok_warn_captcha_failed"], interaction=interaction, delete_after=30)
         except DownloadFailedException:
