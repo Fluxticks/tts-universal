@@ -62,6 +62,24 @@ def embed_from_slide(slide_info: TikTokSlide) -> list[Embed]:
     return embed_list
 
 
+async def respond_to_message(message: Message, post_data: TikTokVideo | TikTokSlide) -> bool | None:
+    if isinstance(post_data, TikTokVideo):
+        file = post_data.file_path
+        if os.path.getsize(file) >= MAX_FILE_BYTES:
+            file = reduce_video(file)
+        embed = embed_from_video(post_data)
+        await message.reply(embed=embed, file=File(f"{file}"), mention_author=False)
+        os.remove(file)
+    else:
+        embeds = embed_from_slide(post_data)
+        files = [File(x, filename=x) for x in post_data.images]
+        await message.reply(embeds=embeds, files=files, mention_author=False)
+        for file in post_data.images:
+            os.remove(file)
+
+    return True
+
+
 @default_permissions(administrator=True)
 class TikTokEmbedAdmin(GroupCog, name=COG_STRINGS["tiktok_admin_group_name"]):
 
@@ -120,14 +138,8 @@ class TikTokEmbed(GroupCog, name=COG_STRINGS["tiktok_group_name"]):
 
         for _, match in enumerate(found_urls, start=1):
             try:
-                video_info = await get_post(match.string)
-                file = video_info.file_path
-                if os.path.getsize(file) >= MAX_FILE_BYTES:
-                    file = reduce_video(file)
-                embed = embed_from_video(video_info)
-                await message.reply(embed=embed, file=File(f"{file}"), mention_author=False)
-                os.remove(file)
-                should_suppress = True
+                post_info = await get_post(match.string)
+                should_suppress = should_suppress or (await respond_to_message(message, post_info)) is not None
             except CaptchaFailedException:
                 await message.reply(COG_STRINGS["tiktok_warn_captcha_failed"], mention_author=False)
             except DownloadFailedException:
