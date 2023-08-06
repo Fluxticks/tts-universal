@@ -8,7 +8,7 @@ from discord.app_commands import command, default_permissions, describe, rename
 from discord.ext.commands import Bot, GroupCog
 from discord.utils import MISSING
 from instagramdl.exceptions import (InstagramInaccessibleException, PostUnavailableException)
-from instagramdl.get_post import RequestHandler
+from instagramdl.get_post import get_info
 from instagramdl.post_data import InstagramPost
 
 from common.discord import respond_or_followup
@@ -126,8 +126,6 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
         self.bot = bot
         self.logger = logging.getLogger(__name__)
         self.logger.info(f"{__name__} has been added as a Cog")
-        self.request_handler = RequestHandler(minimum_request_interval=REQUEST_TIMER)
-        self.current_requests = set()
 
     @GroupCog.listener()
     async def on_message(self, message: Message):
@@ -140,42 +138,31 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
 
         found_urls = re.finditer(REGEX_STR, message.content, re.MULTILINE)
         for _, match in enumerate(found_urls, start=1):
-            self.request_handler.make_next_request()
-            task = asyncio.create_task(self.post_response(url=match.string, message=message))
-            self.current_requests.add(task)
-            task.add_done_callback(self.current_requests.discard)
+            await self.post_response(url=match.string, message=message)
 
     async def post_response(self, url: str, message: Message = None, interaction: Interaction = None):
 
-        #TODO: This is a workaround, needs improving
-        async def callback(*args, **kwargs):
-            print("done")
-
-        await self.request_handler.add_request(url, callback=callback)
         try:
-            post = await self.request_handler.make_next_request()
+            post = await get_info(url)
         except InstagramInaccessibleException as e:
             if message:
-                await message.reply(content=COG_STRINGS["instagram_warn_inaccessible"].format(url=e.url), mention_author=False)
-            elif interaction:
-                await respond_or_followup(
-                    message=COG_STRINGS["instagram_warn_inaccessible"].format(url=e.url),
-                    interaction=interaction,
-                    delete_after=10
-                )
+                return
+
+            await respond_or_followup(
+                message=COG_STRINGS["instagram_warn_inaccessible"].format(url=e.url),
+                interaction=interaction,
+                delete_after=10
+            )
             return
         except PostUnavailableException as e:
             if message:
-                await message.reply(
-                    content=COG_STRINGS["instagram_warn_post_unavailable"].format(url=e.url),
-                    mention_author=False
-                )
-            elif interaction:
-                await respond_or_followup(
-                    message=COG_STRINGS["instagram_warn_post_unavailable"].format(url=e.url),
-                    interaction=interaction,
-                    delete_after=10
-                )
+                return
+
+            await respond_or_followup(
+                message=COG_STRINGS["instagram_warn_post_unavailable"].format(url=e.url),
+                interaction=interaction,
+                delete_after=10
+            )
             return
 
         embeds = embeds_from_post(post)
@@ -194,16 +181,16 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
                 video = reduce_video(video)
                 post.post_video_files[-1] = video
 
-            file = File(f"{video}")
+            attachments = [File(f"{video}")]
         else:
-            file = MISSING
+            attachments = MISSING
 
         if message:
             if not message.flags.suppress_embeds:
                 await message.edit(suppress=True)
             await message.reply(embeds=embeds, file=file, mention_author=False)
         elif interaction:
-            await interaction.edit_original_response(content="", embeds=embeds, attachments=[file])
+            await interaction.edit_original_response(content="", embeds=embeds, attachments=attachments)
 
         for file in post.post_video_files:
             os.remove(file)
@@ -218,9 +205,7 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
             await respond_or_followup(message=COG_STRINGS["instagram_warn_invalid_url"], interaction=interaction)
             return
 
-        task = asyncio.create_task(self.post_response(url=url, interaction=interaction))
-        self.current_requests.add(task)
-        task.add_done_callback(self.current_requests.discard)
+        await self.post_response(url=url, interaction=interaction)
 
 
 async def setup(bot: Bot):
