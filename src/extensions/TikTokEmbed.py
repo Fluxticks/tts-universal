@@ -2,7 +2,7 @@ import logging
 import os
 import re
 
-from discord import Embed, File, Interaction, Message
+from discord import Embed, File, Interaction, Message, RawReactionActionEvent, PartialEmoji
 from discord.app_commands import command, default_permissions, describe, rename
 from discord.ext.commands import Bot, GroupCog
 from tiktokdl.download_post import get_post
@@ -20,6 +20,8 @@ COG_STRINGS = load_cog_toml(__name__)
 REGEX_STR = r"(https\:\/\/vm\.tiktok\.com\/[a-zA-Z0-9]+)|(https\:\/\/www\.tiktok\.com\/\@[a-zA-Z0-9\.\_]+\/video\/[0-9]+)"
 TIKTOK_ICON = "https://cdn.pixabay.com/photo/2021/06/15/12/28/tiktok-6338430_1280.png"
 INTERACTION_PREFIX = f"{__name__}."
+RETRY_EMOJI = PartialEmoji.from_str(os.getenv("TIKTOK_RETRY_EMOJI"))
+CONFIRM_EMOJI = PartialEmoji.from_str(os.getenv("TIKTOK_RESPONSE_EMOJI"))
 
 
 def embed_from_post(post_info: TikTokVideo | TikTokSlide) -> Embed:
@@ -166,6 +168,43 @@ class TikTokEmbed(GroupCog, name=COG_STRINGS["tiktok_group_name"]):
 
         if should_suppress:
             await message.edit(suppress=True)
+
+    @GroupCog.listener()
+    async def on_raw_reaction_add(self, payload: RawReactionActionEvent):
+        if payload.member.id == self.bot.user.id:
+            return
+
+        if payload.emoji != RETRY_EMOJI:
+            return
+
+        guild = self.bot.get_guild(payload.guild_id)
+        channel = guild.get_channel(payload.channel_id)
+        message = await channel.fetch_message(payload.message_id)
+        if not message:
+            return
+
+        if re.search(REGEX_STR, message.content, re.MULTILINE) is None:
+            return
+
+        await message.add_reaction(CONFIRM_EMOJI)
+
+        found_urls = re.finditer(REGEX_STR, message.content, re.MULTILINE)
+        should_suppress = False
+
+        for _, match in enumerate(found_urls, start=1):
+            try:
+                post_info = await get_post(match.string)
+                should_suppress = should_suppress or (await respond_to_message(message, post_info)) is not None
+            except CaptchaFailedException:
+                await message.reply(COG_STRINGS["tiktok_warn_captcha_failed"], mention_author=False)
+            except DownloadFailedException:
+                await message.reply(COG_STRINGS["tiktok_warn_download_failed"], mention_author=False)
+
+        if should_suppress:
+            await message.edit(suppress=True)
+
+        await message.remove_reaction(payload.emoji, payload.member)
+        await message.remove_reaction(CONFIRM_EMOJI, guild.me)
 
     @command(name=COG_STRINGS["tiktok_embed_name"], description=COG_STRINGS["tiktok_embed_description"])
     @describe(url=COG_STRINGS["tiktok_embed_url_describe"])

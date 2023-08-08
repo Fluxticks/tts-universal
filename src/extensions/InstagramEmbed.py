@@ -3,7 +3,7 @@ import logging
 import os
 import re
 
-from discord import Embed, File, Interaction, Message
+from discord import Embed, File, Interaction, Message, RawReactionActionEvent, PartialEmoji
 from discord.app_commands import command, default_permissions, describe, rename
 from discord.ext.commands import Bot, GroupCog
 from discord.utils import MISSING
@@ -23,6 +23,8 @@ REQUEST_TIMER = 5
 MAX_POST_DESCRIPTION_LENGTH = 360
 INSTA_COLOUR = 0xE1306C
 INSTA_ICON_URL = "https://images-ext-2.discordapp.net/external/C6jCIKlXguRhfmSp6USkbWsS11fnsbBgMXiclR2R4ps/https/www.instagram.com/static/images/ico/favicon-192.png/68d99ba29cc8.png"
+RETRY_EMOJI = PartialEmoji.from_str(os.getenv("INSTA_RETRY_EMOJI"))
+CONFIRM_EMOJI = PartialEmoji.from_str(os.getenv("INSTA_RESPONSE_EMOJI"))
 
 
 def embeds_from_post(post: InstagramPost) -> list[Embed]:
@@ -139,6 +141,32 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
         found_urls = re.finditer(REGEX_STR, message.content, re.MULTILINE)
         for _, match in enumerate(found_urls, start=1):
             await self.post_response(url=match.string, message=message)
+
+    @GroupCog.listener()
+    async def on_raw_reaction_add(self, payload: RawReactionActionEvent):
+        if payload.member.id == self.bot.user.id:
+            return
+
+        if payload.emoji != RETRY_EMOJI:
+            return
+
+        guild = self.bot.get_guild(payload.guild_id)
+        channel = guild.get_channel(payload.channel_id)
+        message = await channel.fetch_message(payload.message_id)
+        if not message:
+            return
+
+        if re.search(REGEX_STR, message.content, re.MULTILINE) is None:
+            return
+
+        await message.add_reaction(CONFIRM_EMOJI)
+
+        found_urls = re.finditer(REGEX_STR, message.content, re.MULTILINE)
+        for _, match in enumerate(found_urls, start=1):
+            await self.post_response(url=match.string, message=message)
+
+        await message.remove_reaction(payload.emoji, payload.member)
+        await message.remove_reaction(CONFIRM_EMOJI, guild.me)
 
     async def post_response(self, url: str, message: Message = None, interaction: Interaction = None):
 
