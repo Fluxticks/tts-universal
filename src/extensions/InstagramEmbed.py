@@ -188,7 +188,7 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
         if message:
             if not message.flags.suppress_embeds:
                 await message.edit(suppress=True)
-            await message.reply(embeds=embeds, file=file, mention_author=False)
+            await message.reply(embeds=embeds, file=attachments[0], mention_author=False)
         elif interaction:
             await interaction.edit_original_response(content="", embeds=embeds, attachments=attachments)
 
