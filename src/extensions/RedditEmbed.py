@@ -17,7 +17,7 @@ from database.gateway import DBSession
 from database.models import RedditMessagesEnabled
 
 COG_STRINGS = load_cog_toml(__name__)
-REGEX_STR = r"https:\/\/www\.reddit\.com\/r\/[a-zA-Z0-9\_\-]+\/comments\/[a-zA-Z0-9]+"
+REGEX_STR = r"https:\/\/(www\.)?reddit\.com\/r\/[a-zA-Z0-9\_\-]+\/(comments|s)\/[a-zA-Z0-9]+"
 INTERACTION_PREFIX = f"{__name__}."
 
 
