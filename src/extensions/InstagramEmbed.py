@@ -3,7 +3,8 @@ import os
 import re
 from urllib.parse import parse_qs, urlparse
 
-from discord import Embed, Interaction, Message, RawReactionActionEvent, PartialEmoji
+from discord import Embed, File, Interaction, Message, RawReactionActionEvent, PartialEmoji
+from discord.abc import MISSING
 from discord.app_commands import command, default_permissions, describe, rename
 from discord.ext.commands import Bot, GroupCog
 from instagramdl.exceptions import PostUnavailableException
@@ -11,7 +12,7 @@ from instagramdl.get_post import get_info
 from instagramdl.post_data import InstagramPost
 
 from common.discord import respond_or_followup
-from common.io import load_cog_toml
+from common.io import load_cog_toml, reduce_video
 from database.gateway import DBSession
 from database.models import InstagramMessagesEnabled
 
@@ -151,30 +152,27 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
     async def request_reply(self, url: str, interaction: Interaction = None, message: Message = None):
 
         try:
-            post_data = await get_info(url, download_videos=False)
+            post_data = await get_info(url, download_videos=True)
         except PostUnavailableException:
             if interaction:
                 await respond_or_followup(COG_STRINGS["instagram_warn_inaccessible"], interaction=interaction)
             return False
 
         embeds = make_embeds(post_data)
-        if post_data.post_video_urls:
-            videos = " ".join(
-                [f"[Video {idx + 1}]({reduce_url_length(x)})" for idx,
-                 x in enumerate(post_data.post_video_urls)]
-            )
-            paginated_videos = paginate_video_text(videos)
+        if post_data.post_video_files:
+            files = [File(reduce_video(x)) for x in post_data.post_video_files]
+            if not files:
+                files = MISSING
         else:
-            paginated_videos = ""
+            files = MISSING
 
         if message:
-            new_message = await message.reply(embeds=embeds, mention_author=False)
-            for page in paginated_videos:
-                await new_message.reply(content=page, mention_author=False)
+            await message.reply(embeds=embeds, mention_author=False, files=files)
         elif interaction:
-            await respond_or_followup(message="", embeds=embeds, interaction=interaction, delete_after=None)
-            for page in paginated_videos:
-                await respond_or_followup(message=page, interaction=interaction, delete_after=None)
+            await respond_or_followup(message="", embeds=embeds, interaction=interaction, delete_after=None, files=files)
+
+        for file in post_data.post_video_files:
+            os.remove(file)
 
         return True
 
