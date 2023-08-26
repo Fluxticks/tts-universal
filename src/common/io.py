@@ -92,7 +92,7 @@ def stitch_videos(video_list: list[str], output_file: str | None = None) -> str 
         return None
 
 
-def reduce_video(video_file: list[str], output_file: str | None = None) -> str | None:
+def reduce_video(video_file: str, output_file: str | None = None) -> str | None:
 
     def get_crf(file_size):
         result = 21 + 25 * math.log(file_size / MAX_FILE_BYTES, 2)
