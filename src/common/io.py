@@ -102,6 +102,9 @@ def reduce_video(video_file: str, output_file: str | None = None) -> str | None:
         video_file = os.path.join(os.path.abspath(os.path.curdir), video_file)
 
     file_size = os.path.getsize(video_file)
+    if file_size < MAX_FILE_BYTES:
+        return video_file
+
     if not output_file:
         output_file = os.path.join(os.path.abspath(os.path.curdir), f"{uuid4()}.mp4")
 
