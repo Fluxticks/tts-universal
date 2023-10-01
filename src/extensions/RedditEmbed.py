@@ -18,6 +18,7 @@ from database.models import RedditMessagesEnabled
 
 COG_STRINGS = load_cog_toml(__name__)
 REGEX_STR = r"https:\/\/(www\.)?reddit\.com\/r\/[a-zA-Z0-9\_\-]+\/(comments)\/[a-zA-Z0-9]+"
+SHARE_REGEX = r"https:\/\/reddit\.com\/r\/[a-zA-Z0-9\_\-]+\/s\/[a-zA-Z0-9]+"
 INTERACTION_PREFIX = f"{__name__}."
 
 
