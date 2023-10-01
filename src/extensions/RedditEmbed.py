@@ -10,6 +10,7 @@ from discord import ButtonStyle, Embed, Interaction, Message
 from discord.app_commands import command, default_permissions, describe, rename
 from discord.ext.commands import Bot, GroupCog
 from discord.ui import Button, View
+import requests
 
 from common.discord import respond_or_followup
 from common.io import load_cog_toml
@@ -105,6 +106,11 @@ def make_post_buttons(post: RedditPost) -> View:
     return view
 
 
+def get_post_url(share_url: str) -> str :
+    redirect = requests.get(share_url)
+    return redirect.url
+
+
 @default_permissions(administrator=True)
 class RedditEmbedAdmin(GroupCog, name=COG_STRINGS["reddit_admin_group_name"]):
 
@@ -165,11 +171,16 @@ class RedditEmbed(GroupCog, name=COG_STRINGS["reddit_group_name"]):
         if not db_item or not db_item.is_enabled:
             return
 
-        found_urls = re.finditer(REGEX_STR, message.content, re.MULTILINE)
+        found_urls = re.finditer(f"({REGEX_STR})|({SHARE_REGEX})", message.content, re.MULTILINE)
         should_suppress = False
 
         for _, match in enumerate(found_urls, start=1):
-            reddit_post = await self.get_post(match.group())
+            share_search = re.search(SHARE_REGEX, match.group())
+            if share_search:
+                match = get_post_url(match.group())
+            else:
+                match = match.group()
+            reddit_post = await self.get_post(match)
             embed = make_post_embed(reddit_post)
             view = make_post_buttons(reddit_post)
             await message.reply(embed=embed, view=view, mention_author=False)
@@ -260,12 +271,20 @@ class RedditEmbed(GroupCog, name=COG_STRINGS["reddit_group_name"]):
     async def embed(self, interaction: Interaction, url: str):
         await interaction.response.defer()
 
-        found_urls = re.finditer(REGEX_STR, url, re.MULTILINE)
-        if not found_urls:
+        matches = re.search(SHARE_REGEX, url)
+        found_url = None
+        if matches:
+            found_url = get_post_url(matches.group())
+        else:
+            matches = re.search(REGEX_STR, url)
+            if matches:
+                found_url = matches.group()
+
+        if not found_url:
             await respond_or_followup(message=COG_STRINGS["warn_invalid_url"], interaction=interaction)
             return
 
-        reddit_post = await self.get_post(url)
+        reddit_post = await self.get_post(found_url)
         embed = make_post_embed(reddit_post)
         view = make_post_buttons(reddit_post)
 
