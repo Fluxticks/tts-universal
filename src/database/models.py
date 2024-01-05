@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Boolean, Column, String
+from sqlalchemy import BigInteger, Boolean, Column, String, Integer
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -10,7 +10,8 @@ __all__ = [
     "MusicChannels",
     "RedditMessagesEnabled",
     "InstagramMessagesEnabled",
-    "TikTokMessagesEnabled"
+    "TikTokMessagesEnabled",
+    "RoleReactMenus",
 ]
 
 
@@ -55,3 +56,9 @@ class TikTokMessagesEnabled(base):
     __tablename__ = "tiktok_messages_enabled"
     guild_id = Column(BigInteger, primary_key=True, nullable=False)
     is_enabled = Column(Boolean, default=False)
+
+class RoleReactMenus(base):
+    __tablename__ = "rolereact_menus"
+    primary_key = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True, nullable=False)
+    guild_id = Column(BigInteger, nullable=False)
+    message_id = Column(BigInteger, nullable=False)
