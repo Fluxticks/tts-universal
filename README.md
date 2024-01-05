@@ -200,6 +200,31 @@ This behaviour can be changed using the `tiktok-admin` commands to toggle messag
 
 </details>
 
+<details>
+<summary>RoleReact</summary>
+
+## RoleReact
+
+Implements Role Reaction menus that are easy to create, setup and manage.
+
+#### /rolereact create
+
+- Creates a new empty RoleReact menu.
+
+#### /rolereact add-role \<menu-id\> \<role\> [optional: emoji] [optional: description]
+
+- Add a role to a given menu and optionally assign an emoji and description to the role.
+
+#### /rolereact remove-role \<menu-id\> \<role\>
+
+- Remove a role from a given menu.
+
+#### /rolereact /delete \<menu-id\>
+
+- Delete a given RoleReact menu.
+
+</details>
+
 # Quick Setup Guide
 
 Requirements needed to run:
