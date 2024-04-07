@@ -3,7 +3,14 @@ import os
 from datetime import datetime
 
 from discord import File, Interaction, TextChannel
-from discord.app_commands import command, describe, rename, autocomplete, Range, Transform
+from discord.app_commands import (
+    command,
+    describe,
+    rename,
+    autocomplete,
+    Range,
+    Transform,
+)
 from discord.ext.commands import Bot, Cog
 
 from common.io import load_cog_toml
@@ -38,7 +45,10 @@ def get_heading_padding(heading_title: str, content_width: int) -> tuple[str, in
     left_padding = "   " * (length_difference // 2 + BOTH_SIDE_PADDING)
     right_padding = "  " * (length_difference // 2 + BOTH_SIDE_PADDING)
 
-    return (f"__**{left_padding}{heading_title}{right_padding}**__", content_width_change)
+    return (
+        f"__**{left_padding}{heading_title}{right_padding}**__",
+        content_width_change,
+    )
 
 
 def get_padded_cell_content(cell_content: str, column_width: int) -> str:
@@ -50,16 +60,26 @@ def get_padded_cell_content(cell_content: str, column_width: int) -> str:
 
 
 def pretty_print_table(
-    rows: list[VoiceAdminParent] | list[VoiceAdminChild] | list[MusicChannels] | list[RedditMessagesEnabled]
-    | list[InstagramMessagesEnabled] | list[TikTokMessagesEnabled]
+    rows: (
+        list[VoiceAdminParent]
+        | list[VoiceAdminChild]
+        | list[MusicChannels]
+        | list[RedditMessagesEnabled]
+        | list[InstagramMessagesEnabled]
+        | list[TikTokMessagesEnabled]
+    ),
 ):
     if not rows:
         return COG_STRINGS["db_tables_warn_empty"]
 
     item_type = rows[0]
     item_columns = [x for x in item_type.__dict__ if not x.startswith("_")]
-    column_widths = {x: calculate_column_width([getattr(y, x) for y in rows]) for x in item_columns}
-    table_titles = {x: get_heading_padding(x, column_widths.get(x)) for x in column_widths}
+    column_widths = {
+        x: calculate_column_width([getattr(y, x) for y in rows]) for x in item_columns
+    }
+    table_titles = {
+        x: get_heading_padding(x, column_widths.get(x)) for x in column_widths
+    }
 
     output = "​__**   **__​"
     output += "**|**".join([x[0] for x in table_titles.values()])
@@ -70,7 +90,9 @@ def pretty_print_table(
             _, width_change = table_titles.get(column)
             column_width += width_change
             cell_content = get_padded_cell_content(getattr(item, column), column_width)
-            row_string += f"{cell_content}{'**|**' if idx < len(item_columns) - 1 else ''}"
+            row_string += (
+                f"{cell_content}{'**|**' if idx < len(item_columns) - 1 else ''}"
+            )
 
         output += row_string
 
@@ -83,45 +105,85 @@ class GenericCommands(Cog):
         self.bot = bot
         self.logger = logging.getLogger(__name__)
 
-    @command(name=COG_STRINGS["reload_quotes_name"], description=COG_STRINGS["reload_quotes_description"])
+    @command(
+        name=COG_STRINGS["reload_quotes_name"],
+        description=COG_STRINGS["reload_quotes_description"],
+    )
     async def reload_quotes(self, interaction: Interaction):
         if str(interaction.user.id) != str(os.getenv("OWNER_USER_ID")):
-            await interaction.response.send_message(COG_STRINGS["error_user_not_owner"], ephemeral=True)
+            await interaction.response.send_message(
+                COG_STRINGS["error_user_not_owner"], ephemeral=True
+            )
             return
 
         if await self.bot.update_quotes():
-            await interaction.response.send_message(COG_STRINGS["reload_quotes_success"], ephemeral=True, delete_after=5.0)
+            await interaction.response.send_message(
+                COG_STRINGS["reload_quotes_success"], ephemeral=True, delete_after=5.0
+            )
         else:
-            await interaction.response.send_message(COG_STRINGS["reload_quotes_failed"], ephemeral=True)
+            await interaction.response.send_message(
+                COG_STRINGS["reload_quotes_failed"], ephemeral=True
+            )
 
-    @command(name=COG_STRINGS["db_tables_name"], description=COG_STRINGS["db_tables_description"])
+    @command(
+        name=COG_STRINGS["db_tables_name"],
+        description=COG_STRINGS["db_tables_description"],
+    )
     @describe(table=COG_STRINGS["db_tables_table_describe"])
     @rename(table=COG_STRINGS["db_tables_table_rename"])
     @autocomplete(table=TableTransformer.autocomplete)
-    async def get_db_table(self, interaction: Interaction, table: Transform[TableBase, TableTransformer]):
+    async def get_db_table(
+        self, interaction: Interaction, table: Transform[TableBase, TableTransformer]
+    ):
         if str(interaction.user.id) != str(os.getenv("OWNER_USER_ID")):
-            await interaction.response.send_message(COG_STRINGS["error_user_not_owner"], ephemeral=True)
+            await interaction.response.send_message(
+                COG_STRINGS["error_user_not_owner"], ephemeral=True
+            )
             return
 
         table_data = DBSession.list(table=table)
-        await interaction.response.send_message(pretty_print_table(table_data), ephemeral=True)
+        await interaction.response.send_message(
+            pretty_print_table(table_data), ephemeral=True
+        )
 
-    @command(name=COG_STRINGS["export_chat_name"], description=COG_STRINGS["export_chat_description"])
-    @describe(count=COG_STRINGS["export_chat_count_describe"], channel=COG_STRINGS["export_chat_channel_describe"])
-    @rename(count=COG_STRINGS["export_chat_count_rename"], channel=COG_STRINGS["export_chat_channel_rename"])
-    async def export_chat(self, interaction: Interaction, count: Range[int, 1, 100], channel: TextChannel = None):
+    @command(
+        name=COG_STRINGS["export_chat_name"],
+        description=COG_STRINGS["export_chat_description"],
+    )
+    @describe(
+        count=COG_STRINGS["export_chat_count_describe"],
+        channel=COG_STRINGS["export_chat_channel_describe"],
+    )
+    @rename(
+        count=COG_STRINGS["export_chat_count_rename"],
+        channel=COG_STRINGS["export_chat_channel_rename"],
+    )
+    async def export_chat(
+        self,
+        interaction: Interaction,
+        count: Range[int, 1, 100],
+        channel: TextChannel = None,
+    ):
         if str(interaction.user.id) != str(os.getenv("OWNER_USER_ID")):
-            await interaction.response.send_message(COG_STRINGS["error_user_not_owner"], ephemeral=True)
+            await interaction.response.send_message(
+                COG_STRINGS["error_user_not_owner"], ephemeral=True
+            )
             return
 
         if not channel:
             channel = interaction.channel
 
         channel_permissions = channel.permissions_for(interaction.guild.me)
-        if not channel_permissions.view_channel or not channel_permissions.read_messages or not channel_permissions.read_message_history:
+        if (
+            not channel_permissions.view_channel
+            or not channel_permissions.read_messages
+            or not channel_permissions.read_message_history
+        ):
             await interaction.response.send_message(
-                COG_STRINGS["export_channel_not_viewable_error"].format(channel=channel.mention),
-                ephemeral=True
+                COG_STRINGS["export_channel_not_viewable_error"].format(
+                    channel=channel.mention
+                ),
+                ephemeral=True,
             )
             return
 
@@ -135,7 +197,7 @@ class GenericCommands(Cog):
             async for message in channel.history(limit=count):
                 author = message.author
                 timestamp = message.created_at
-                contents = message.content.replace('"', '\'').replace("\n", "\\n")
+                contents = message.content.replace('"', "'").replace("\n", "\\n")
 
                 for member in message.mentions:
                     contents = contents.replace(member.mention, f"@{member!s}")
@@ -151,13 +213,13 @@ class GenericCommands(Cog):
                 if message.attachments:
                     contents += f" [Attachments: {','.join([x.url for x in message.attachments])}]"
 
-                line = f"{author!s},{timestamp.timestamp()},\"{contents}\"\n"
+                line = f'{author!s},{timestamp.timestamp()},"{contents}"\n'
                 f.write(line)
 
         await interaction.followup.send(
             content=COG_STRINGS["export_chat_done"].format(count=count),
             ephemeral=True,
-            file=File(f"{file_name}")
+            file=File(f"{file_name}"),
         )
 
         os.remove(file_name)

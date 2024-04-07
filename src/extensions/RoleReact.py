@@ -2,8 +2,25 @@ import logging
 from dataclasses import dataclass
 from typing import Union
 
-from discord import (Color, Embed, Guild, Interaction, Message, NotFound, PartialEmoji, Role)
-from discord.app_commands import (Transform, autocomplete, command, default_permissions, describe, guild_only, rename)
+from discord import (
+    Color,
+    Embed,
+    Guild,
+    Interaction,
+    Message,
+    NotFound,
+    PartialEmoji,
+    Role,
+)
+from discord.app_commands import (
+    Transform,
+    autocomplete,
+    command,
+    default_permissions,
+    describe,
+    guild_only,
+    rename,
+)
 from discord.ext.commands import Bot, GroupCog
 from discord.ui import Select, View
 
@@ -12,7 +29,7 @@ from common.discord import (
     EmojiTransformer,
     RoleReactMenuTransformer,
     RoleReactRoleTransformer,
-    respond_or_followup
+    respond_or_followup,
 )
 from common.io import load_cog_toml
 from database.gateway import DBSession
@@ -41,12 +58,16 @@ class RoleOption:
             out += f"<&@{self.role_id}>"
 
         if self.description:
-            out += COG_STRINGS["react_role_description"].format(description=self.description)
+            out += COG_STRINGS["react_role_description"].format(
+                description=self.description
+            )
 
         return out
 
 
-async def validate_message_id(interaction: Interaction, message_id: int) -> Union[None, Message]:
+async def validate_message_id(
+    interaction: Interaction, message_id: int
+) -> Union[None, Message]:
     """Check if a given message ID is a RoleReact menu message. If it is, return the message object
     for the given message ID.
 
@@ -63,16 +84,20 @@ async def validate_message_id(interaction: Interaction, message_id: int) -> Unio
         await respond_or_followup(
             COG_STRINGS["react_warn_message_not_found"].format(message_id=message_id),
             interaction,
-            ephemeral=True
+            ephemeral=True,
         )
         return None
 
-    valid_message = DBSession.get(RoleReactMenus, guild_id=message.guild.id, message_id=message.id)
+    valid_message = DBSession.get(
+        RoleReactMenus, guild_id=message.guild.id, message_id=message.id
+    )
     if not valid_message:
         await respond_or_followup(
-            COG_STRINGS["react_warn_invalid_message_found"].format(message_id=message_id),
+            COG_STRINGS["react_warn_invalid_message_found"].format(
+                message_id=message_id
+            ),
             interaction,
-            ephemeral=True
+            ephemeral=True,
         )
         return None
 
@@ -101,10 +126,12 @@ def options_from_view(view: View, guild: Guild = None) -> list[RoleOption]:
             else:
                 option_role = None
             options.append(
-                RoleOption(role_id=option.value,
-                           role=option_role,
-                           emoji=option.emoji,
-                           description=option.description)
+                RoleOption(
+                    role_id=option.value,
+                    role=option_role,
+                    emoji=option.emoji,
+                    description=option.description,
+                )
             )
     return options
 
@@ -128,13 +155,15 @@ def view_from_options(options: list[RoleOption]) -> View:
         )
 
     view = View(timeout=None)
-    child_select = Select(custom_id=f"{ROLE_REACT_INTERACTION_PREFIX}{0}", min_values=0, max_values=0)
+    child_select = Select(
+        custom_id=f"{ROLE_REACT_INTERACTION_PREFIX}{0}", min_values=0, max_values=0
+    )
     for idx, option in enumerate(options):
         child_select.add_option(
             label=f"@{option.role.name}",
             value=str(option.role_id),
             description=option.description,
-            emoji=option.emoji
+            emoji=option.emoji,
         )
         child_select.max_values += 1
 
@@ -143,7 +172,7 @@ def view_from_options(options: list[RoleOption]) -> View:
             child_select = Select(
                 custom_id=f"{ROLE_REACT_INTERACTION_PREFIX}{(idx+1)//MAX_VIEW_ITEM_COUNT}",
                 min_values=0,
-                max_values=0
+                max_values=0,
             )
         elif idx == len(options) - 1:
             view.add_item(child_select)
@@ -161,10 +190,14 @@ def no_options_embed(menu_id: int = None, color: Color = Color.random()) -> Embe
     Returns:
         Embed: The embed generated with placeholder text.
     """
-    description = COG_STRINGS["react_footer_no_id"] if not menu_id else COG_STRINGS["react_empty_menu"].format(
-        message_id=menu_id
+    description = (
+        COG_STRINGS["react_footer_no_id"]
+        if not menu_id
+        else COG_STRINGS["react_empty_menu"].format(message_id=menu_id)
     )
-    embed = Embed(title=COG_STRINGS["react_embed_title"], description=description, color=color)
+    embed = Embed(
+        title=COG_STRINGS["react_embed_title"], description=description, color=color
+    )
     if menu_id:
         embed.set_footer(text=f"Menu ID: {menu_id}")
     else:
@@ -173,7 +206,9 @@ def no_options_embed(menu_id: int = None, color: Color = Color.random()) -> Embe
     return embed
 
 
-def embeds_from_options(options: list[RoleOption], menu_id: int = None, color: Color = Color.random()) -> list[Embed]:
+def embeds_from_options(
+    options: list[RoleOption], menu_id: int = None, color: Color = Color.random()
+) -> list[Embed]:
     """Create an embed or many given a list of RoleOption. If there are too many roles for a single embed, multiple
     embeds will be created to contain all roles.
 
@@ -198,7 +233,11 @@ def embeds_from_options(options: list[RoleOption], menu_id: int = None, color: C
         return [no_options_embed(menu_id=menu_id, color=color)]
 
     embeds = []
-    embed_item = Embed(title=COG_STRINGS["react_embed_title"], description="**__Active Roles__**", color=color)
+    embed_item = Embed(
+        title=COG_STRINGS["react_embed_title"],
+        description="**__Active Roles__**",
+        color=color,
+    )
 
     for idx, option in enumerate(options):
         embed_item.description += f"\n{option!s}"
@@ -264,14 +303,18 @@ class RoleReact(GroupCog, name=COG_STRINGS["react_group_name"]):
         if not interaction.data or not interaction.data.get("custom_id"):
             return False
 
-        if not interaction.data.get("custom_id").startswith(ROLE_REACT_INTERACTION_PREFIX):
+        if not interaction.data.get("custom_id").startswith(
+            ROLE_REACT_INTERACTION_PREFIX
+        ):
             return False
 
         await interaction.response.defer()
         selected_role_ids = interaction.data.get("values")
         message_view = View.from_message(interaction.message)
         select_index = interaction.data.get("custom_id").split(".")[-1]
-        select_roles = get_roles_from_select(message_view, interaction.guild, int(select_index))
+        select_roles = get_roles_from_select(
+            message_view, interaction.guild, int(select_index)
+        )
         unselected_roles = []
         selected_roles = []
 
@@ -283,13 +326,25 @@ class RoleReact(GroupCog, name=COG_STRINGS["react_group_name"]):
 
         await interaction.user.remove_roles(*unselected_roles)
         await interaction.user.add_roles(*selected_roles)
-        await respond_or_followup(COG_STRINGS["react_roles_updated"], interaction, ephemeral=True, delete_after=5)
+        await respond_or_followup(
+            COG_STRINGS["react_roles_updated"],
+            interaction,
+            ephemeral=True,
+            delete_after=5,
+        )
 
-    @command(name=COG_STRINGS["react_create_menu_name"], description=COG_STRINGS["react_create_menu_description"])
+    @command(
+        name=COG_STRINGS["react_create_menu_name"],
+        description=COG_STRINGS["react_create_menu_description"],
+    )
     @describe(color=COG_STRINGS["react_create_menu_embed_color_describe"])
     @rename(color=COG_STRINGS["react_create_menu_embed_color_rename"])
     @autocomplete(color=ColourTransformer.autocomplete)
-    async def create_menu(self, interaction: Interaction, color: Transform[Color, ColourTransformer] = Color.random()):
+    async def create_menu(
+        self,
+        interaction: Interaction,
+        color: Transform[Color, ColourTransformer] = Color.random(),
+    ):
         """The command to create a new RoleReact menu/message. This command must be used to initalise a message as it
         serves to ensure that not any message can be turned into a RoleReact message.
 
@@ -306,9 +361,14 @@ class RoleReact(GroupCog, name=COG_STRINGS["react_group_name"]):
         message_embeds = embeds_from_options([], menu_id=message.id, color=color)
         await message.edit(embeds=message_embeds)
 
-        await respond_or_followup(COG_STRINGS["react_create_menu_success"], interaction, ephemeral=True)
+        await respond_or_followup(
+            COG_STRINGS["react_create_menu_success"], interaction, ephemeral=True
+        )
 
-    @command(name=COG_STRINGS["react_delete_menu_name"], description=COG_STRINGS["react_delete_menu_description"])
+    @command(
+        name=COG_STRINGS["react_delete_menu_name"],
+        description=COG_STRINGS["react_delete_menu_description"],
+    )
     @describe(menu_id=COG_STRINGS["react_delete_menu_message_id_describe"])
     @rename(menu_id=COG_STRINGS["react_delete_menu_message_id_rename"])
     @autocomplete(menu_id=RoleReactMenuTransformer.autocomplete)
@@ -326,7 +386,9 @@ class RoleReact(GroupCog, name=COG_STRINGS["react_group_name"]):
         if not message:
             return
 
-        db_item = DBSession.get(RoleReactMenus, guild_id=interaction.guild.id, message_id=message.id)
+        db_item = DBSession.get(
+            RoleReactMenus, guild_id=interaction.guild.id, message_id=message.id
+        )
         if db_item:
             DBSession.delete(db_item)
 
@@ -334,21 +396,24 @@ class RoleReact(GroupCog, name=COG_STRINGS["react_group_name"]):
         await respond_or_followup(
             COG_STRINGS["react_delete_menu_success"].format(menu_id=message.id),
             interaction,
-            ephemeral=True
+            ephemeral=True,
         )
 
-    @command(name=COG_STRINGS["react_add_item_name"], description=COG_STRINGS["react_add_item_description"])
+    @command(
+        name=COG_STRINGS["react_add_item_name"],
+        description=COG_STRINGS["react_add_item_description"],
+    )
     @describe(
         menu_id=COG_STRINGS["react_add_item_message_id_describe"],
         role=COG_STRINGS["react_add_item_role_describe"],
         emoji=COG_STRINGS["react_add_item_emoji_describe"],
-        description=COG_STRINGS["react_add_item_description_describe"]
+        description=COG_STRINGS["react_add_item_description_describe"],
     )
     @rename(
         menu_id=COG_STRINGS["react_add_item_message_id_rename"],
         role=COG_STRINGS["react_add_item_role_rename"],
         emoji=COG_STRINGS["react_add_item_emoji_rename"],
-        description=COG_STRINGS["react_add_item_description_rename"]
+        description=COG_STRINGS["react_add_item_description_rename"],
     )
     @autocomplete(menu_id=RoleReactMenuTransformer.autocomplete)
     async def add_role(
@@ -356,9 +421,8 @@ class RoleReact(GroupCog, name=COG_STRINGS["react_group_name"]):
         interaction: Interaction,
         menu_id: str,
         role: Role,
-        emoji: Transform[PartialEmoji,
-                         EmojiTransformer] = None,
-        description: str = None
+        emoji: Transform[PartialEmoji, EmojiTransformer] = None,
+        description: str = None,
     ):
         """The command to add a role to a specific RoleReact menu. The emoji or description do not need to be unique,
         and are purely visual aids for users to better understand a role.
@@ -379,29 +443,38 @@ class RoleReact(GroupCog, name=COG_STRINGS["react_group_name"]):
         embed_color = message.embeds[0].color
         message_view = View.from_message(message)
         current_options = options_from_view(message_view, interaction.guild)
-        current_options.append(RoleOption(role_id=role.id, role=role, emoji=emoji, description=description))
+        current_options.append(
+            RoleOption(role_id=role.id, role=role, emoji=emoji, description=description)
+        )
 
         updated_view = view_from_options(current_options)
         updated_embeds = embeds_from_options(current_options, menu_id, embed_color)
 
         await message.edit(view=updated_view, embeds=updated_embeds)
         await respond_or_followup(
-            COG_STRINGS["react_add_item_success"].format(role=role.name,
-                                                         menu_id=menu_id),
+            COG_STRINGS["react_add_item_success"].format(
+                role=role.name, menu_id=menu_id
+            ),
             interaction,
-            ephemeral=True
+            ephemeral=True,
         )
 
-    @command(name=COG_STRINGS["react_remove_item_name"], description=COG_STRINGS["react_remove_item_description"])
+    @command(
+        name=COG_STRINGS["react_remove_item_name"],
+        description=COG_STRINGS["react_remove_item_description"],
+    )
     @describe(
         menu_id=COG_STRINGS["react_remove_item_message_id_describe"],
-        role_id=COG_STRINGS["react_remove_item_role_id_describe"]
+        role_id=COG_STRINGS["react_remove_item_role_id_describe"],
     )
     @rename(
         menu_id=COG_STRINGS["react_remove_item_message_id_rename"],
-        role_id=COG_STRINGS["react_remove_item_role_id_rename"]
+        role_id=COG_STRINGS["react_remove_item_role_id_rename"],
     )
-    @autocomplete(menu_id=RoleReactMenuTransformer.autocomplete, role_id=RoleReactRoleTransformer.autocomplete)
+    @autocomplete(
+        menu_id=RoleReactMenuTransformer.autocomplete,
+        role_id=RoleReactRoleTransformer.autocomplete,
+    )
     async def remove_item(self, interaction: Interaction, menu_id: str, role_id: str):
         """The command to remove a role from a given menu ID. The role ID can either be given manually or selected
         from the autocompleted list of roles in the menu selected as the first argument.
@@ -422,7 +495,11 @@ class RoleReact(GroupCog, name=COG_STRINGS["react_group_name"]):
         current_options = options_from_view(message_view, interaction.guild)
 
         if not current_options:
-            await respond_or_followup(COG_STRINGS["react_remove_item_warn_no_items"], interaction, ephemeral=True)
+            await respond_or_followup(
+                COG_STRINGS["react_remove_item_warn_no_items"],
+                interaction,
+                ephemeral=True,
+            )
             return
 
         option_to_remove = None
@@ -439,10 +516,11 @@ class RoleReact(GroupCog, name=COG_STRINGS["react_group_name"]):
 
         await message.edit(view=updated_view, embeds=updated_embeds)
         await respond_or_followup(
-            COG_STRINGS["react_remove_item_success"].format(role_id=role_id,
-                                                            menu_id=menu_id),
+            COG_STRINGS["react_remove_item_success"].format(
+                role_id=role_id, menu_id=menu_id
+            ),
             interaction,
-            ephemeral=True
+            ephemeral=True,
         )
 
 

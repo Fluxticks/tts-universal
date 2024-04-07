@@ -3,7 +3,14 @@ import os
 import re
 from urllib.parse import parse_qs, urlparse
 
-from discord import Embed, File, Interaction, Message, RawReactionActionEvent, PartialEmoji
+from discord import (
+    Embed,
+    File,
+    Interaction,
+    Message,
+    RawReactionActionEvent,
+    PartialEmoji,
+)
 from discord.abc import MISSING
 from discord.app_commands import command, default_permissions, describe, rename
 from discord.ext.commands import Bot, GroupCog
@@ -33,7 +40,7 @@ def paginate_video_text(videos):
         while len(remaining) > 2000:
             next_index = remaining.rfind(" [", 0, 2000)
             output.append(remaining[:next_index])
-            remaining = remaining[next_index + 1:]
+            remaining = remaining[next_index + 1 :]
         output.append(remaining)
         return output
     return [videos]
@@ -42,7 +49,9 @@ def paginate_video_text(videos):
 def reduce_url_length(url: str):
     needed_params = ["_nc_ht", "_nc_ohc", "edm", "oh", "oe"]
     params = parse_qs(urlparse(url).query)
-    params_string = "&".join([f"{k}={v[0]}" for k, v in params.items() if k in needed_params])
+    params_string = "&".join(
+        [f"{k}={v[0]}" for k, v in params.items() if k in needed_params]
+    )
     base_string = url.split("?")[0]
     return f"{base_string}?{params_string}"
 
@@ -52,9 +61,9 @@ def parse_description(description: str):
     out_description = description
     match = re.search(tag_regex, out_description, re.MULTILINE)
     for _ in range(out_description.count("#")):
-        before = out_description[:match.start()]
-        after = out_description[match.end():]
-        string = out_description[match.start():match.end()]
+        before = out_description[: match.start()]
+        after = out_description[match.end() :]
+        string = out_description[match.start() : match.end()]
         replace_string = f"[{string}](https://www.instagram.com/explore/tags/{string.replace('#','')})"
         out_description = before + replace_string + after
         match = re.search(tag_regex, out_description, re.MULTILINE)
@@ -63,9 +72,9 @@ def parse_description(description: str):
 
 def make_embeds(post: InstagramPost):
     if len(post.post_description) > MAX_POST_DESCRIPTION_LENGTH:
-        next_space = post.post_description.index(' ', MAX_POST_DESCRIPTION_LENGTH)
+        next_space = post.post_description.index(" ", MAX_POST_DESCRIPTION_LENGTH)
         if next_space == -1:
-            next_space = post.post_description.index('.', MAX_POST_DESCRIPTION_LENGTH)
+            next_space = post.post_description.index(".", MAX_POST_DESCRIPTION_LENGTH)
 
         description = f"{post.post_description[:next_space]}\n\n... Read more [on instagram]({post.post_url})"
     else:
@@ -75,13 +84,17 @@ def make_embeds(post: InstagramPost):
         color=INSTA_COLOUR,
         title=f"{'<a:verified:1143572299304407141> ' if post.author_is_verified else''}{post.author_display_name}'s Post",
         description=parse_description(description),
-        url=post.post_url
+        url=post.post_url,
     )
 
-    embed.set_author(name=f"@{post.author_username}", url=post.author_profile_url, icon_url=post.author_avatar_url)
+    embed.set_author(
+        name=f"@{post.author_username}",
+        url=post.author_profile_url,
+        icon_url=post.author_avatar_url,
+    )
     embed.set_footer(
         text=f"Post on {post.post_timestamp.strftime('%d/%m/%Y')} at {post.post_timestamp.strftime('%-H:%M')}",
-        icon_url=INSTA_ICON_URL
+        icon_url=INSTA_ICON_URL,
     )
 
     embeds = [embed]
@@ -107,12 +120,14 @@ class InstagramEmbedAdmin(GroupCog, name=COG_STRINGS["instagram_admin_group_name
 
     @command(
         name=COG_STRINGS["instagram_enable_messages_name"],
-        description=COG_STRINGS["instagram_enable_messages_description"]
+        description=COG_STRINGS["instagram_enable_messages_description"],
     )
     async def enable_on_message(self, interaction: Interaction):
         db_item = DBSession.get(InstagramMessagesEnabled, guild_id=interaction.guild.id)
         if not db_item:
-            db_item = InstagramMessagesEnabled(guild_id=interaction.guild.id, is_enabled=True)
+            db_item = InstagramMessagesEnabled(
+                guild_id=interaction.guild.id, is_enabled=True
+            )
             DBSession.update(db_item)
         else:
             db_item.is_enabled = True
@@ -120,17 +135,19 @@ class InstagramEmbedAdmin(GroupCog, name=COG_STRINGS["instagram_admin_group_name
         await respond_or_followup(
             message=COG_STRINGS["instagram_enable_messages_success"],
             interaction=interaction,
-            ephemeral=True
+            ephemeral=True,
         )
 
     @command(
         name=COG_STRINGS["instagram_disable_messages_name"],
-        description=COG_STRINGS["instagram_disable_messages_description"]
+        description=COG_STRINGS["instagram_disable_messages_description"],
     )
     async def disable_on_message(self, interaction: Interaction):
         db_item = DBSession.get(InstagramMessagesEnabled, guild_id=interaction.guild.id)
         if not db_item:
-            db_item = InstagramMessagesEnabled(guild_id=interaction.guild.id, is_enabled=False)
+            db_item = InstagramMessagesEnabled(
+                guild_id=interaction.guild.id, is_enabled=False
+            )
             DBSession.update(db_item)
         else:
             db_item.is_enabled = False
@@ -138,7 +155,7 @@ class InstagramEmbedAdmin(GroupCog, name=COG_STRINGS["instagram_admin_group_name
         await respond_or_followup(
             message=COG_STRINGS["instagram_disable_messages_success"],
             interaction=interaction,
-            ephemeral=True
+            ephemeral=True,
         )
 
 
@@ -149,13 +166,17 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
         self.logger = logging.getLogger(__name__)
         self.logger.info(f"{__name__} has been added as a Cog")
 
-    async def request_reply(self, url: str, interaction: Interaction = None, message: Message = None):
+    async def request_reply(
+        self, url: str, interaction: Interaction = None, message: Message = None
+    ):
 
         try:
             post_data = await get_info(url, download_videos=True)
         except PostUnavailableException:
             if interaction:
-                await respond_or_followup(COG_STRINGS["instagram_warn_inaccessible"], interaction=interaction)
+                await respond_or_followup(
+                    COG_STRINGS["instagram_warn_inaccessible"], interaction=interaction
+                )
             return False
 
         embeds = make_embeds(post_data)
@@ -169,7 +190,13 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
         if message:
             await message.reply(embeds=embeds, mention_author=False, files=files)
         elif interaction:
-            await respond_or_followup(message="", embeds=embeds, interaction=interaction, delete_after=None, files=files)
+            await respond_or_followup(
+                message="",
+                embeds=embeds,
+                interaction=interaction,
+                delete_after=None,
+                files=files,
+            )
 
         for file in post_data.post_video_files:
             os.remove(file)
@@ -188,7 +215,10 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
         should_suppress = False
         found_urls = re.finditer(REGEX_STR, message.content, re.MULTILINE)
         for _, match in enumerate(found_urls, start=1):
-            should_suppress = await self.request_reply(url=match.string, message=message) or should_suppress
+            should_suppress = (
+                await self.request_reply(url=match.string, message=message)
+                or should_suppress
+            )
 
         if should_suppress:
             await message.edit(suppress=True)
@@ -219,14 +249,20 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
         await message.remove_reaction(payload.emoji, payload.member)
         await message.remove_reaction(CONFIRM_EMOJI, guild.me)
 
-    @command(name=COG_STRINGS["instagram_embed_name"], description=COG_STRINGS["instagram_embed_description"])
+    @command(
+        name=COG_STRINGS["instagram_embed_name"],
+        description=COG_STRINGS["instagram_embed_description"],
+    )
     @describe(url=COG_STRINGS["instagram_embed_url_describe"])
     @rename(url=COG_STRINGS["instagram_embed_rename"])
     async def embed(self, interaction: Interaction, url: str):
         await interaction.response.defer()
         validate_url = re.search(REGEX_STR, url)
         if not validate_url:
-            await respond_or_followup(message=COG_STRINGS["instagram_warn_invalid_url"], interaction=interaction)
+            await respond_or_followup(
+                message=COG_STRINGS["instagram_warn_invalid_url"],
+                interaction=interaction,
+            )
             return
 
         await self.request_reply(url=url, interaction=interaction)
@@ -235,6 +271,7 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
 async def setup(bot: Bot):
     import subprocess
     import sys
+
     subprocess.run([sys.executable, "-m", "playwright", "install"])
     subprocess.run([sys.executable, "-m", "playwright", "install-deps"])
     await bot.add_cog(InstagramEmbed(bot))

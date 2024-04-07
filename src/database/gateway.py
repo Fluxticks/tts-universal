@@ -11,9 +11,11 @@ from database.models import base
 if os.getenv("DB_OVERRIDE"):
     DB_STRING = os.getenv("DB_OVERRIDE")
 else:
-    DB_STRING = f"postgresql://" \
-                f"{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@" \
-                f"{os.getenv('POSTGRES_HOST')}:5432/{os.getenv('POSTGRES_DB')}"
+    DB_STRING = (
+        f"postgresql://"
+        f"{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@"
+        f"{os.getenv('POSTGRES_HOST')}:5432/{os.getenv('POSTGRES_DB')}"
+    )
 
 __all__ = ["DBSession"]
 
@@ -88,7 +90,9 @@ class __DBSession:
             self.session.delete(record)
             self.session.commit()
         except Exception as error:
-            self.logger.error(f"Encountered an exception while attempting to `delete` {record}")
+            self.logger.error(
+                f"Encountered an exception while attempting to `delete` {record}"
+            )
             raise Exception(f"Error occured when using DB delete - {error}")
 
     def create(self, record: Any):
@@ -104,7 +108,9 @@ class __DBSession:
             self.session.add(record)
             self.session.commit()
         except Exception as error:
-            self.logger.error(f"Encountered an exception while attempting to `create` {record}")
+            self.logger.error(
+                f"Encountered an exception while attempting to `create` {record}"
+            )
             raise Exception(f"Error occured when using DB create - {error}")
 
     def update(self, record: Any):
@@ -120,7 +126,9 @@ class __DBSession:
             self.session.add(record)
             self.session.commit()
         except Exception as error:
-            self.logger.error(f"Encountered an exception while attempting to `update` {record}")
+            self.logger.error(
+                f"Encountered an exception while attempting to `update` {record}"
+            )
             raise Exception(f"Error occured when using DB update - {error}")
 
 

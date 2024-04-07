@@ -17,14 +17,18 @@ __all__ = [
 
 class VoiceAdminParent(base):
     __tablename__ = "voiceadmin_parents"
-    primary_key = Column(BigInteger, primary_key=True, autoincrement=True, nullable=False)
+    primary_key = Column(
+        BigInteger, primary_key=True, autoincrement=True, nullable=False
+    )
     guild_id = Column(BigInteger, nullable=False)
     channel_id = Column(BigInteger, nullable=False)
 
 
 class VoiceAdminChild(base):
     __tablename__ = "voiceadmin_children"
-    primary_key = Column(BigInteger, primary_key=True, autoincrement=True, nullable=False)
+    primary_key = Column(
+        BigInteger, primary_key=True, autoincrement=True, nullable=False
+    )
     guild_id = Column(BigInteger, nullable=False)
     channel_id = Column(BigInteger, nullable=False)
     owner_id = Column(BigInteger, nullable=False)
@@ -57,8 +61,14 @@ class TikTokMessagesEnabled(base):
     guild_id = Column(BigInteger, primary_key=True, nullable=False)
     is_enabled = Column(Boolean, default=False)
 
+
 class RoleReactMenus(base):
     __tablename__ = "rolereact_menus"
-    primary_key = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True, nullable=False)
+    primary_key = Column(
+        BigInteger().with_variant(Integer, "sqlite"),
+        primary_key=True,
+        autoincrement=True,
+        nullable=False,
+    )
     guild_id = Column(BigInteger, nullable=False)
     message_id = Column(BigInteger, nullable=False)

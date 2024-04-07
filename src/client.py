@@ -21,7 +21,9 @@ except ValueError:
 
 class __EsportsBot(Bot):
 
-    def __init__(self, command_prefix: str, all_messages_ephemeral: bool, *args, **kwargs):
+    def __init__(
+        self, command_prefix: str, all_messages_ephemeral: bool, *args, **kwargs
+    ):
         """Creates a new instance of the the private EsportsBot class.
 
         Args:
@@ -44,8 +46,7 @@ class __EsportsBot(Bot):
         return extensions
 
     async def setup_hook(self):
-        """The setup function that is called prior to the bot connecting to the Discord Gateway.
-        """
+        """The setup function that is called prior to the bot connecting to the Discord Gateway."""
 
         enabled_extensions = self.find_extensions()
 
@@ -55,7 +56,9 @@ class __EsportsBot(Bot):
         # If in a dev environment, sync the commands to the dev guild.
         if os.getenv("DEV_GUILD_ID"):
             DEV_GUILD = Object(id=os.getenv("DEV_GUILD_ID"))
-            self.logger.warning(f"Using guild with id {DEV_GUILD.id} as Development guild!")
+            self.logger.warning(
+                f"Using guild with id {DEV_GUILD.id} as Development guild!"
+            )
             self.tree.copy_global_to(guild=DEV_GUILD)
         else:
             DEV_GUILD = None
@@ -77,7 +80,10 @@ class __EsportsBot(Bot):
 
     async def update_status(self):
         new_quote = self.generate_quote()
-        await self.change_presence(activity=Activity(type=ActivityType.playing, name=new_quote), status=Status.idle)
+        await self.change_presence(
+            activity=Activity(type=ActivityType.playing, name=new_quote),
+            status=Status.idle,
+        )
 
     def generate_quote(self):
         new_choice = choice(self.quotes)
@@ -86,7 +92,7 @@ class __EsportsBot(Bot):
         timestamp_float = float(new_choice.get("timestamp"))
         timestamp = datetime.fromtimestamp(timestamp_float)
         timestamp_str = timestamp.strftime("%b '%y")
-        new_quote = f"\"{choice_quote}\" - {choice_author}, {timestamp_str}"
+        new_quote = f'"{choice_quote}" - {choice_author}, {timestamp_str}'
         return new_quote
 
     @tasks.loop(hours=STATUS_HOURS)
@@ -94,4 +100,8 @@ class __EsportsBot(Bot):
         await self.update_status()
 
 
-EsportsBot = __EsportsBot(command_prefix=os.getenv("COMMAND_PREFIX"), all_messages_ephemeral=False, intents=Intents.all())
+EsportsBot = __EsportsBot(
+    command_prefix=os.getenv("COMMAND_PREFIX"),
+    all_messages_ephemeral=False,
+    intents=Intents.all(),
+)

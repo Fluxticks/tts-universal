@@ -22,7 +22,9 @@ def load_cog_toml(cog_path: str) -> Dict:
         Dict: A dictionary containng the key/value pairs defined in the cog's TOML file.
     """
     cog_name = os.path.splitext(cog_path)[-1][1:]
-    path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "locale", f"{cog_name}.toml"))
+    path = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "locale", f"{cog_name}.toml")
+    )
     try:
         return toml.load(path)
     except FileNotFoundError:
@@ -36,7 +38,9 @@ def load_banned_words():
     Returns:
         list: A list of banned words.
     """
-    file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "banned_words.txt"))
+    file_path = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "banned_words.txt")
+    )
     try:
         lines = []
         with open(file_path, "rt") as file:
@@ -49,7 +53,9 @@ def load_banned_words():
 
 
 def load_quotes() -> tuple[list[str], list[dict[str, any]]]:
-    file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "quotes.csv"))
+    file_path = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "quotes.csv")
+    )
     try:
         lines = []
         with open(file_path, "r") as f:
@@ -84,7 +90,21 @@ def stitch_videos(video_list: list[str], output_file: str | None = None) -> str 
         output_file = os.path.join(base_path, output_file)
 
     try:
-        subprocess.run(["ffmpeg", "-f", "concat", "-safe", "0", "-i", videos_file, "-c", "copy", output_file], check=True)
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                videos_file,
+                "-c",
+                "copy",
+                output_file,
+            ],
+            check=True,
+        )
         os.remove(videos_file)
         return output_file
     except subprocess.CalledProcessError:
@@ -113,7 +133,18 @@ def reduce_video(video_file: str, output_file: str | None = None) -> str | None:
         return None
 
     try:
-        subprocess.run(["ffmpeg", "-i", video_file, "-vcodec", "libx264", "-crf", f"{video_crf!s}", output_file])
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-i",
+                video_file,
+                "-vcodec",
+                "libx264",
+                "-crf",
+                f"{video_crf!s}",
+                output_file,
+            ]
+        )
         os.remove(video_file)
         os.rename(output_file, video_file)
         return video_file

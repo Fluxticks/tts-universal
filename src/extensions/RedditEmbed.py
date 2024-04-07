@@ -74,7 +74,11 @@ class RedditPost:
 
 def make_post_embed(post: RedditPost) -> Embed:
     embed = Embed(title=post.post_title, color=0xFF5700, url=post.post_url)
-    if post.post_type == PostType.IMAGE or post.post_type == PostType.VIDEO or post.post_type == PostType.LINK:
+    if (
+        post.post_type == PostType.IMAGE
+        or post.post_type == PostType.VIDEO
+        or post.post_type == PostType.LINK
+    ):
         embed.set_image(url=post.post_image)
 
     if post.post_type == PostType.VIDEO:
@@ -85,9 +89,12 @@ def make_post_embed(post: RedditPost) -> Embed:
 
     embed.set_footer(
         text=f"Posted on {post.post_subreddit} • {post.vote_count} votes, {post.comment_count} comments",
-        icon_url=post.subreddit_icon
+        icon_url=post.subreddit_icon,
     )
-    embed.set_author(name=f"u/{post.author_name} posted [{post.post_type.to_str()}]", icon_url=post.author_avatar)
+    embed.set_author(
+        name=f"u/{post.author_name} posted [{post.post_type.to_str()}]",
+        icon_url=post.author_avatar,
+    )
     return embed
 
 
@@ -95,18 +102,26 @@ def make_post_buttons(post: RedditPost) -> View:
     view = View(timeout=None)
     match post.post_type:
         case PostType.VIDEO:
-            button = Button(style=ButtonStyle.primary, label="Watch video", custom_id=f"{INTERACTION_PREFIX}video")
+            button = Button(
+                style=ButtonStyle.primary,
+                label="Watch video",
+                custom_id=f"{INTERACTION_PREFIX}video",
+            )
             view.add_item(button)
         case PostType.LINK:
-            button = Button(style=ButtonStyle.primary, label="Go to linked site", url=post.post_link)
+            button = Button(
+                style=ButtonStyle.primary, label="Go to linked site", url=post.post_link
+            )
             view.add_item(button)
 
-    button = Button(style=ButtonStyle.secondary, label="View on reddit", url=post.post_url)
+    button = Button(
+        style=ButtonStyle.secondary, label="View on reddit", url=post.post_url
+    )
     view.add_item(button)
     return view
 
 
-def get_post_url(share_url: str) -> str :
+def get_post_url(share_url: str) -> str:
     redirect = requests.get(share_url)
     return redirect.url
 
@@ -117,11 +132,16 @@ class RedditEmbedAdmin(GroupCog, name=COG_STRINGS["reddit_admin_group_name"]):
     def __init__(self, bot: Bot):
         self.bot = bot
 
-    @command(name=COG_STRINGS["reddit_enable_messages_name"], description=COG_STRINGS["reddit_enable_messages_description"])
+    @command(
+        name=COG_STRINGS["reddit_enable_messages_name"],
+        description=COG_STRINGS["reddit_enable_messages_description"],
+    )
     async def enable_on_message(self, interaction: Interaction):
         db_item = DBSession.get(RedditMessagesEnabled, guild_id=interaction.guild.id)
         if not db_item:
-            db_item = RedditMessagesEnabled(guild_id=interaction.guild.id, is_enabled=True)
+            db_item = RedditMessagesEnabled(
+                guild_id=interaction.guild.id, is_enabled=True
+            )
             DBSession.update(db_item)
         else:
             db_item.is_enabled = True
@@ -129,14 +149,19 @@ class RedditEmbedAdmin(GroupCog, name=COG_STRINGS["reddit_admin_group_name"]):
         await respond_or_followup(
             message=COG_STRINGS["reddit_enable_messages_success"],
             interaction=interaction,
-            ephemeral=True
+            ephemeral=True,
         )
 
-    @command(name=COG_STRINGS["reddit_disable_messages_name"], description=COG_STRINGS["reddit_disable_messages_description"])
+    @command(
+        name=COG_STRINGS["reddit_disable_messages_name"],
+        description=COG_STRINGS["reddit_disable_messages_description"],
+    )
     async def disable_on_message(self, interaction: Interaction):
         db_item = DBSession.get(RedditMessagesEnabled, guild_id=interaction.guild.id)
         if not db_item:
-            db_item = RedditMessagesEnabled(guild_id=interaction.guild.id, is_enabled=False)
+            db_item = RedditMessagesEnabled(
+                guild_id=interaction.guild.id, is_enabled=False
+            )
             DBSession.update(db_item)
         else:
             db_item.is_enabled = False
@@ -144,7 +169,7 @@ class RedditEmbedAdmin(GroupCog, name=COG_STRINGS["reddit_admin_group_name"]):
         await respond_or_followup(
             message=COG_STRINGS["reddit_disable_messages_success"],
             interaction=interaction,
-            ephemeral=True
+            ephemeral=True,
         )
 
 
@@ -160,7 +185,11 @@ class RedditEmbed(GroupCog, name=COG_STRINGS["reddit_group_name"]):
             redirect_uri=os.getenv("REDDIT_REDIRECT_URI"),
             user_agent=f"BetterDiscordEmbedder (by u/{os.getenv('REDDIT_USERNAME')})",
         )
-        self.logger.debug(self.reddit_api.auth.url(scopes=["identity"], state="...", duration="permanent"))
+        self.logger.debug(
+            self.reddit_api.auth.url(
+                scopes=["identity"], state="...", duration="permanent"
+            )
+        )
 
     @GroupCog.listener()
     async def on_message(self, message: Message):
@@ -171,7 +200,9 @@ class RedditEmbed(GroupCog, name=COG_STRINGS["reddit_group_name"]):
         if not db_item or not db_item.is_enabled:
             return
 
-        found_urls = re.finditer(f"({REGEX_STR})|({SHARE_REGEX})", message.content, re.MULTILINE)
+        found_urls = re.finditer(
+            f"({REGEX_STR})|({SHARE_REGEX})", message.content, re.MULTILINE
+        )
         should_suppress = False
 
         for _, match in enumerate(found_urls, start=1):
@@ -232,7 +263,9 @@ class RedditEmbed(GroupCog, name=COG_STRINGS["reddit_group_name"]):
             if submission.media.get("reddit_video").get("is_gif"):
                 post_image = submission.media.get("reddit_video").get("fallback_url")
             else:
-                post_image = submission.preview.get("images")[0].get("source").get("url")
+                post_image = (
+                    submission.preview.get("images")[0].get("source").get("url")
+                )
                 post_link = submission.media.get("reddit_video").get("fallback_url")
 
         text_overflow = False
@@ -243,7 +276,9 @@ class RedditEmbed(GroupCog, name=COG_STRINGS["reddit_group_name"]):
 
         await submission.subreddit.load()
         subreddit = submission.subreddit
-        subreddit_icon = subreddit.icon_img if subreddit.icon_img else subreddit.community_icon
+        subreddit_icon = (
+            subreddit.icon_img if subreddit.icon_img else subreddit.community_icon
+        )
 
         await submission.author.load()
         reddit_post = RedditPost(
@@ -260,12 +295,15 @@ class RedditEmbed(GroupCog, name=COG_STRINGS["reddit_group_name"]):
             post_text=post_text,
             post_image=post_image,
             post_link=post_link,
-            text_overflow=text_overflow
+            text_overflow=text_overflow,
         )
 
         return reddit_post
 
-    @command(name=COG_STRINGS["reddit_embed_name"], description=COG_STRINGS["reddit_embed_description"])
+    @command(
+        name=COG_STRINGS["reddit_embed_name"],
+        description=COG_STRINGS["reddit_embed_description"],
+    )
     @describe(url=COG_STRINGS["reddit_embed_url_describe"])
     @rename(url=COG_STRINGS["reddit_embed_rename"])
     async def embed(self, interaction: Interaction, url: str):
@@ -281,14 +319,22 @@ class RedditEmbed(GroupCog, name=COG_STRINGS["reddit_group_name"]):
                 found_url = matches.group()
 
         if not found_url:
-            await respond_or_followup(message=COG_STRINGS["warn_invalid_url"], interaction=interaction)
+            await respond_or_followup(
+                message=COG_STRINGS["warn_invalid_url"], interaction=interaction
+            )
             return
 
         reddit_post = await self.get_post(found_url)
         embed = make_post_embed(reddit_post)
         view = make_post_buttons(reddit_post)
 
-        await respond_or_followup(message="", interaction=interaction, embed=embed, view=view, delete_after=None)
+        await respond_or_followup(
+            message="",
+            interaction=interaction,
+            embed=embed,
+            view=view,
+            delete_after=None,
+        )
 
 
 async def setup(bot: Bot):
