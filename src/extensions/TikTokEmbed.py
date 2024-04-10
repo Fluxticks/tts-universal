@@ -303,12 +303,6 @@ class TikTokEmbed(GroupCog, name=COG_STRINGS["tiktok_group_name"]):
 
 
 async def setup(bot: Bot):
-    import subprocess
-    import sys
-
-    subprocess.run([sys.executable, "-m", "playwright", "install"])
-    subprocess.run([sys.executable, "-m", "playwright", "install-deps"])
-
     await bot.add_cog(TikTokEmbed(bot))
     await bot.add_cog(TikTokEmbedAdmin(bot))
     return
