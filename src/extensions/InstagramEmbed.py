@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+from datetime import datetime
 from urllib.parse import parse_qs, urlparse
 
 from discord import (
@@ -14,9 +15,9 @@ from discord import (
 from discord.abc import MISSING
 from discord.app_commands import command, default_permissions, describe, rename
 from discord.ext.commands import Bot, GroupCog
-from instagramdl.exceptions import PostUnavailableException
-from instagramdl.get_post import get_info
-from instagramdl.post_data import InstagramPost
+from instagramdl.api import get_post_data
+from instagramdl.models import *
+from instagramdl.parser import parse_api_response
 
 from common.discord import respond_or_followup
 from common.io import load_cog_toml, reduce_video
@@ -24,7 +25,7 @@ from database.gateway import DBSession
 from database.models import InstagramMessagesEnabled
 
 COG_STRINGS = load_cog_toml(__name__)
-REGEX_STR = r"https\:\/\/www\.instagram\.com\/(reel|p)\/[a-zA-Z0-9]+"
+REGEX_STR = r"https\:\/\/(www\.)?instagram\.com\/(reel|p)\/[a-zA-Z0-9]+"
 REQUEST_TIMER = 5
 MAX_POST_DESCRIPTION_LENGTH = 360
 INSTA_COLOUR = 0xE1306C
@@ -70,43 +71,51 @@ def parse_description(description: str):
     return out_description
 
 
-def make_embeds(post: InstagramPost):
-    if len(post.post_description) > MAX_POST_DESCRIPTION_LENGTH:
-        next_space = post.post_description.index(" ", MAX_POST_DESCRIPTION_LENGTH)
+def make_embeds(post: ImagePost | MultiPost | VideoPost):
+    if len(post.caption) > MAX_POST_DESCRIPTION_LENGTH:
+        next_space = post.caption.index(" ", MAX_POST_DESCRIPTION_LENGTH)
         if next_space == -1:
-            next_space = post.post_description.index(".", MAX_POST_DESCRIPTION_LENGTH)
+            next_space = post.caption.index(".", MAX_POST_DESCRIPTION_LENGTH)
 
-        description = f"{post.post_description[:next_space]}\n\n... Read more [on instagram]({post.post_url})"
+        description = (
+            f"{post.caption[:next_space]}\n\n... Read more [on instagram]({post.url})"
+        )
     else:
-        description = post.post_description
+        description = post.caption
 
     embed = Embed(
         color=INSTA_COLOUR,
-        title=f"{'<a:verified:1143572299304407141> ' if post.author_is_verified else''}{post.author_display_name}'s Post",
+        title=f"{'<a:verified:1143572299304407141> ' if post.user.is_verified else''}{post.user.full_name}'s Post",
         description=parse_description(description),
-        url=post.post_url,
+        url=post.url,
     )
 
     embed.set_author(
-        name=f"@{post.author_username}",
-        url=post.author_profile_url,
-        icon_url=post.author_avatar_url,
+        name=f"@{post.user.username}",
+        url=post.user.url,
+        icon_url=post.user.profile_pic_url,
     )
+
+    timestamp = datetime.fromtimestamp(post.timestamp)
+
     embed.set_footer(
-        text=f"Post on {post.post_timestamp.strftime('%d/%m/%Y')} at {post.post_timestamp.strftime('%-H:%M')}",
+        text=f"Post on {timestamp.strftime('%d/%m/%Y')} at {timestamp.strftime('%-H:%M')}",
         icon_url=INSTA_ICON_URL,
     )
 
+    if isinstance(post, VideoPost):
+        return [embed]
+
+    if isinstance(post, ImagePost):
+        embed.set_image(url=post.image_url)
+        return [embed]
+
     embeds = [embed]
-
-    if not post.post_image_urls:
-        return embeds
-
-    embed.set_image(url=post.post_image_urls[0])
-    if len(post.post_image_urls) > 1:
-        for image in post.post_image_urls[1:]:
-            sub_embed = Embed(url=post.post_url)
-            sub_embed.set_image(url=image)
+    # TODO: Allow posts with more items.
+    for item in post.items[:9]:
+        if isinstance(item, ImagePost):
+            sub_embed = Embed(url=post.url, color=INSTA_COLOUR)
+            sub_embed.set_image(url=item.image_url)
             embeds.append(sub_embed)
 
     return embeds
@@ -169,23 +178,24 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
     async def request_reply(
         self, url: str, interaction: Interaction = None, message: Message = None
     ):
-
-        try:
-            post_data = await get_info(url, download_videos=True)
-        except PostUnavailableException:
-            if interaction:
-                await respond_or_followup(
-                    COG_STRINGS["instagram_warn_inaccessible"], interaction=interaction
-                )
-            return False
+        raw_sanitised_url = urlparse(url)
+        sanitised_url = f"{raw_sanitised_url.scheme}://{raw_sanitised_url.netloc}{raw_sanitised_url.path}"
+        raw_data = get_post_data(sanitised_url)
+        post_data = parse_api_response(raw_data)
 
         embeds = make_embeds(post_data)
-        if post_data.post_video_files:
-            files = [File(reduce_video(x)) for x in post_data.post_video_files]
-            if not files:
-                files = MISSING
-        else:
+        paths = []
+        if isinstance(post_data, VideoPost):
+            paths = [reduce_video(post_data.download("./"))]
+        elif isinstance(post_data, MultiPost):
+            for item in post_data.items:
+                if isinstance(item, VideoPost):
+                    paths.append(reduce_video(item.download("./")))
+
+        if not paths:
             files = MISSING
+        else:
+            files = [File(x) for x in paths]
 
         if message:
             await message.reply(embeds=embeds, mention_author=False, files=files)
@@ -198,8 +208,9 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
                 files=files,
             )
 
-        for file in post_data.post_video_files:
-            os.remove(file)
+        if paths:
+            for file in paths:
+                os.remove(file)
 
         return True
 
