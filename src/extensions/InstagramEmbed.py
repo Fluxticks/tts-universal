@@ -281,8 +281,15 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
             await message.add_reaction(CONFIRM_EMOJI)
 
             found_urls = re.finditer(REGEX_STR, message.content, re.MULTILINE)
+            should_suppress = False
+
             for _, match in enumerate(found_urls, start=1):
-                await self.request_reply(url=match.string, message=message)
+                should_suppress = should_suppress or await self.request_reply(
+                    url=match.string, message=message
+                )
+
+            if should_suppress:
+                await message.edit(suppress=True)
 
         await message.remove_reaction(payload.emoji, payload.member)
         await message.remove_reaction(CONFIRM_EMOJI, guild.me)
