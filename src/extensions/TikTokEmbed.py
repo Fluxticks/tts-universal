@@ -1,6 +1,8 @@
 import logging
 import os
 import re
+from datetime import datetime, timedelta
+from time import time
 
 from discord import (
     Embed,
@@ -235,32 +237,59 @@ class TikTokEmbed(GroupCog, name=COG_STRINGS["tiktok_group_name"]):
         if not message:
             return
 
-        if re.search(REGEX_STR, message.content, re.MULTILINE) is None:
-            return
+        cutoff = datetime.fromtimestamp(time()) - timedelta(
+            hours=float(os.getenv("SOCIAL_RETRY_TIMEOUT"))
+        )
+        jump_url = None
+        async for message_item in message.channel.history(after=cutoff):
 
-        await message.add_reaction(CONFIRM_EMOJI)
+            if not message_item.author == self.bot.user:
+                continue
 
-        found_urls = re.finditer(REGEX_STR, message.content, re.MULTILINE)
-        should_suppress = False
+            if not message_item.reference:
+                continue
 
-        for _, match in enumerate(found_urls, start=1):
-            try:
-                post_info = await get_post(match.string)
-                should_suppress = (
-                    should_suppress
-                    or (await respond_to_message(message, post_info)) is not None
-                )
-            except CaptchaFailedException:
-                await message.reply(
-                    COG_STRINGS["tiktok_warn_captcha_failed"], mention_author=False
-                )
-            except DownloadFailedException:
-                await message.reply(
-                    COG_STRINGS["tiktok_warn_download_failed"], mention_author=False
-                )
+            if message_item.reference.message_id != message.id:
+                continue
 
-        if should_suppress:
-            await message.edit(suppress=True)
+            jump_url = message_item.jump_url
+            break
+
+        if jump_url is not None:
+            await message.reply(
+                f"This post has already been embeded: [jump to message]({jump_url})",
+                silent=True,
+                delete_after=30,
+                mention_author=False,
+            )
+        else:
+
+            if re.search(REGEX_STR, message.content, re.MULTILINE) is None:
+                return
+
+            await message.add_reaction(CONFIRM_EMOJI)
+
+            found_urls = re.finditer(REGEX_STR, message.content, re.MULTILINE)
+            should_suppress = False
+
+            for _, match in enumerate(found_urls, start=1):
+                try:
+                    post_info = await get_post(match.string)
+                    should_suppress = (
+                        should_suppress
+                        or (await respond_to_message(message, post_info)) is not None
+                    )
+                except CaptchaFailedException:
+                    await message.reply(
+                        COG_STRINGS["tiktok_warn_captcha_failed"], mention_author=False
+                    )
+                except DownloadFailedException:
+                    await message.reply(
+                        COG_STRINGS["tiktok_warn_download_failed"], mention_author=False
+                    )
+
+            if should_suppress:
+                await message.edit(suppress=True)
 
         await message.remove_reaction(payload.emoji, payload.member)
         await message.remove_reaction(CONFIRM_EMOJI, guild.me)

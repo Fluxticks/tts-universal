@@ -1,8 +1,9 @@
 import logging
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import parse_qs, urlparse
+from time import time
 
 from discord import (
     Embed,
@@ -248,14 +249,40 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
         if not message:
             return
 
-        if re.search(REGEX_STR, message.content, re.MULTILINE) is None:
-            return
+        cutoff = datetime.fromtimestamp(time()) - timedelta(
+            hours=float(os.getenv("SOCIAL_RETRY_TIMEOUT"))
+        )
+        jump_url = None
+        async for message_item in message.channel.history(after=cutoff):
 
-        await message.add_reaction(CONFIRM_EMOJI)
+            if not message_item.author == self.bot.user:
+                continue
 
-        found_urls = re.finditer(REGEX_STR, message.content, re.MULTILINE)
-        for _, match in enumerate(found_urls, start=1):
-            await self.request_reply(url=match.string, message=message)
+            if not message_item.reference:
+                continue
+
+            if message_item.reference.message_id != message.id:
+                continue
+
+            jump_url = message_item.jump_url
+            break
+
+        if jump_url is not None:
+            await message.reply(
+                f"This post has already been embeded: [jump to message]({jump_url})",
+                silent=True,
+                delete_after=30,
+                mention_author=False,
+            )
+        else:
+            if re.search(REGEX_STR, message.content, re.MULTILINE) is None:
+                return
+
+            await message.add_reaction(CONFIRM_EMOJI)
+
+            found_urls = re.finditer(REGEX_STR, message.content, re.MULTILINE)
+            for _, match in enumerate(found_urls, start=1):
+                await self.request_reply(url=match.string, message=message)
 
         await message.remove_reaction(payload.emoji, payload.member)
         await message.remove_reaction(CONFIRM_EMOJI, guild.me)
