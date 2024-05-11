@@ -228,7 +228,7 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
         found_urls = re.finditer(REGEX_STR, message.content, re.MULTILINE)
         for _, match in enumerate(found_urls, start=1):
             should_suppress = (
-                await self.request_reply(url=match.string, message=message)
+                await self.request_reply(url=match.group(0), message=message)
                 or should_suppress
             )
 
@@ -285,7 +285,7 @@ class InstagramEmbed(GroupCog, name=COG_STRINGS["instagram_group_name"]):
 
             for _, match in enumerate(found_urls, start=1):
                 should_suppress = should_suppress or await self.request_reply(
-                    url=match.string, message=message
+                    url=match.group(0), message=message
                 )
 
             if should_suppress:

@@ -206,7 +206,7 @@ class TikTokEmbed(GroupCog, name=COG_STRINGS["tiktok_group_name"]):
 
         for _, match in enumerate(found_urls, start=1):
             try:
-                post_info = await get_post(match.string)
+                post_info = await get_post(match.group(0))
                 should_suppress = (
                     should_suppress
                     or (await respond_to_message(message, post_info)) is not None
@@ -274,7 +274,7 @@ class TikTokEmbed(GroupCog, name=COG_STRINGS["tiktok_group_name"]):
 
             for _, match in enumerate(found_urls, start=1):
                 try:
-                    post_info = await get_post(match.string)
+                    post_info = await get_post(match.group(0))
                     should_suppress = (
                         should_suppress
                         or (await respond_to_message(message, post_info)) is not None
