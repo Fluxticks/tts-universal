@@ -26,7 +26,7 @@ from database.gateway import DBSession
 from database.models import InstagramMessagesEnabled
 
 COG_STRINGS = load_cog_toml(__name__)
-REGEX_STR = r"https\:\/\/(www\.)?instagram\.com\/(reel|p)\/[a-zA-Z0-9]+"
+REGEX_STR = r"https\:\/\/(www\.)?instagram\.com\/(reel|p)\/[a-zA-Z0-9\-]+"
 REQUEST_TIMER = 5
 MAX_POST_DESCRIPTION_LENGTH = 360
 INSTA_COLOUR = 0xE1306C
